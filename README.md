@@ -196,5 +196,3 @@ If you are writing custom actions, bots, or external integrations, broadcast JSO
 ## License
 
 Distributed under the MIT License. See `LICENSE` for more information.
-
-Would you like me to add custom Stream Deck button payloads or set up sub-bomb stacking logic in the C# broadcast script?
