@@ -1,2 +1,2 @@
 # Alerts_All_Platforms
-Streamer.bot Alerts System With OBS-Studio Overlay, Supports Twitch, YouTube, Kick Alerts Everything Can Be Custom
+![PreView](https://github.com/MrrZed0/Alerts_All_Platforms/blob/main/Preview.png?raw=true)
