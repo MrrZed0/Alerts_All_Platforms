@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multi-Platform Streamer.bot Alerts</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=Montserrat:ital,wght@0,700;0,900;1,900&family=Orbitron:wght@700;900&family=Press+Start+2P&family=Rajdhani:wght@600;700&family=Russo+One&display=swap" rel="stylesheet">
+  <style>
+
+    :root {
+      --accent: #9146FF;
+      --accent-glow: rgba(145, 70, 255, 0.65);
+      --bg-color: rgba(14, 14, 18, 0.92);
+      --text-user: #ffffff;
+      --text-title: #d4d4d8;
+      --text-detail: #9146FF;
+      --badge-text: #ffffff;
+      --border-width: 2px;
+      --border-radius: 18px;
+      --glow-spread: 30px;
+      --backdrop-blur: 8px;
+      --avatar-size: 80px;
+      --user-font-size: 2.2rem;
+      --alert-font: 'Montserrat', sans-serif;
+      --in-duration: 550ms;
+      --out-duration: 450ms;
+      --sweep-speed: 2.2s;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #09090c;
+      color: #f4f4f5;
+      overflow-x: hidden;
+    }
+
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #121217;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2e2e3a;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #9146FF;
+    }
+
+    /* Stage Backgrounds */
+    .stage-grid {
+      background-color: #0b0b10;
+      background-image: 
+        radial-gradient(circle at 50% 50%, rgba(145, 70, 255, 0.12) 0%, transparent 65%),
+        linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 100% 100%, 32px 32px, 32px 32px;
+    }
+
+    .stage-checker {
+      background-color: #18181b;
+      background-image: 
+        linear-gradient(45deg, #222228 25%, transparent 25%), 
+        linear-gradient(-45deg, #222228 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #222228 75%), 
+        linear-gradient(-45deg, transparent 75%, #222228 75%);
+      background-size: 24px 24px;
+      background-position: 0 0, 0 12px, 12px -12px, -12px 0px;
+    }
+
+    .stage-stream {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 45%, #311042 100%);
+      position: relative;
+    }
+
+    .stage-green {
+      background-color: #00ff00;
+    }
+
+    /* ============================================================
+       ALERT BOX CORE COMPONENT (Shared between Preview & Export)
+       ============================================================ */
+    #preview-stage-inner {
+      perspective: 1200px;
+    }
+
+    #alert-box {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 24px 36px;
+      min-width: 480px;
+      max-width: 780px;
+      background: var(--bg-color);
+      backdrop-filter: blur(var(--backdrop-blur));
+      -webkit-backdrop-filter: blur(var(--backdrop-blur));
+      border: var(--border-width) solid var(--accent);
+      border-radius: var(--border-radius);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7), 0 0 var(--glow-spread) var(--accent-glow);
+      font-family: var(--alert-font);
+      opacity: 0;
+      pointer-events: none;
+      overflow: hidden;
+      transform-style: preserve-3d;
+      will-change: transform, opacity, filter;
+    }
+
+    /* Layout Orientations */
+    #alert-box.layout-row {
+      flex-direction: row;
+      text-align: left;
+    }
+    #alert-box.layout-row-reverse {
+      flex-direction: row-reverse;
+      text-align: right;
+    }
+    #alert-box.layout-row-reverse .alert-header {
+      justify-content: flex-end;
+    }
+    #alert-box.layout-column {
+      flex-direction: column;
+      text-align: center;
+      min-width: 400px;
+      padding: 28px 40px;
+      gap: 14px;
+    }
+    #alert-box.layout-column .alert-header {
+      justify-content: center;
+    }
+    #alert-box.layout-compact {
+      flex-direction: row;
+      padding: 14px 26px;
+      min-width: 380px;
+      border-radius: 9999px;
+      gap: 18px;
+    }
+
+    /* Top Laser Sweep Bar */
+    #alert-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, var(--accent), #fff, var(--accent), transparent);
+      animation: sweep var(--sweep-speed) infinite linear;
+      opacity: var(--sweep-display, 1);
+    }
+
+    @keyframes sweep {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+
+    /* Avatar Container & Idle Animations */
+    .avatar-container {
+      position: relative;
+      width: var(--avatar-size);
+      height: var(--avatar-size);
+      flex-shrink: 0;
+    }
+
+    .avatar-anim-pulse {
+      animation: pulseAvatar 2s infinite ease-in-out;
+    }
+    .avatar-anim-float {
+      animation: floatAvatar 2.6s infinite ease-in-out;
+    }
+    .avatar-anim-spin {
+      animation: spinAvatarBorder 6s infinite linear;
+    }
+
+    @keyframes pulseAvatar {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+    @keyframes floatAvatar {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-7px); }
+    }
+    @keyframes spinAvatarBorder {
+      0%, 100% { transform: rotate(0deg) scale(1); }
+      25% { transform: rotate(4deg) scale(1.03); }
+      75% { transform: rotate(-4deg) scale(1.03); }
+    }
+
+    .user-avatar {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border: 3px solid var(--accent);
+      box-shadow: 0 0 20px var(--accent-glow);
+      background: #18181b;
+      transition: border-radius 0.25s ease, clip-path 0.25s ease;
+    }
+
+    .shape-circle .user-avatar { border-radius: 50%; }
+    .shape-rounded .user-avatar { border-radius: 18px; }
+    .shape-square .user-avatar { border-radius: 4px; }
+    .shape-hexagon .user-avatar {
+      border-radius: 0;
+      clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%);
+    }
+    .shape-diamond .user-avatar {
+      border-radius: 0;
+      clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    }
+
+    /* Mini Platform Corner Badge */
+    .platform-mini-badge {
+      position: absolute;
+      bottom: -2px;
+      right: -2px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #0e0e12;
+      border: 2px solid var(--accent);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+      z-index: 3;
+    }
+
+    .platform-mini-badge svg {
+      width: 15px;
+      height: 15px;
+      fill: var(--accent);
+    }
+
+    /* Alert Content */
+    .alert-content {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      z-index: 2;
+      min-width: 0;
+    }
+
+    .alert-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+
+    .platform-tag {
+      font-size: 0.72rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      padding: 3px 8px;
+      border-radius: 5px;
+      background: var(--accent);
+      color: var(--badge-text);
+    }
+
+    .alert-type {
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--text-title);
+    }
+
+    .alert-user {
+      font-size: var(--user-font-size);
+      font-weight: 900;
+      font-style: italic;
+      color: var(--text-user);
+      text-shadow: 0 0 18px var(--accent-glow);
+      line-height: 1.1;
+      word-break: break-word;
+    }
+
+    .alert-detail {
+      margin-top: 6px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-detail);
+      letter-spacing: 0.5px;
+    }
+
+    .alert-detail:empty {
+      display: none;
+    }
+
+    /* Progress Bar */
+    .progress-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 4px;
+      background: var(--accent);
+      width: 100%;
+      transform-origin: left;
+    }
+    .progress-top .progress-bar {
+      bottom: auto;
+      top: 0;
+    }
+    .progress-hidden .progress-bar {
+      display: none;
+    }
+
+    /* Extra idle motion options */
+    .avatar-anim-glow .user-avatar { animation: avatarGlow 1.7s ease-in-out infinite; }
+    .avatar-anim-bounce { animation: avatarBounce 1.05s ease-in-out infinite; }
+    .avatar-anim-orbit { animation: avatarOrbit 4s ease-in-out infinite; }
+    .avatar-anim-shimmer .user-avatar { animation: avatarShimmer 2.2s ease-in-out infinite; }
+    @keyframes avatarGlow {
+      0%, 100% { box-shadow: 0 0 10px var(--accent-glow); filter: brightness(1); }
+      50% { box-shadow: 0 0 28px var(--accent-glow); filter: brightness(1.3); }
+    }
+    @keyframes avatarBounce {
+      0%, 100% { transform: translateY(0) scale(1); }
+      35% { transform: translateY(-8px) scale(1.035); }
+      65% { transform: translateY(0) scale(.98); }
+    }
+    @keyframes avatarOrbit {
+      0%, 100% { transform: rotate(0deg) translateY(0); }
+      25% { transform: rotate(5deg) translateY(-2px); }
+      50% { transform: rotate(0deg) translateY(0); }
+      75% { transform: rotate(-5deg) translateY(2px); }
+    }
+    @keyframes avatarShimmer {
+      0%, 100% { filter: brightness(1) saturate(1); }
+      50% { filter: brightness(1.35) saturate(1.25); }
+    }
+
+    /* Optional image.png artwork. Intrinsic aspect ratio is preserved and the image is constrained to fit. */
+    .custom-image-container {
+      display: none;
+      flex: 0 1 auto;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+      max-width: min(180px, 25vw);
+      max-height: min(150px, 30vh);
+      overflow: hidden;
+      z-index: 2;
+    }
+    .custom-alert-image {
+      display: block;
+      width: auto;
+      height: auto;
+      max-width: 100%;
+      max-height: min(150px, 30vh);
+      object-fit: contain;
+      object-position: center;
+      border-radius: 8px;
+    }
+    #alert-box.layout-column .custom-image-container {
+      max-width: min(260px, 45vw);
+      max-height: min(170px, 25vh);
+    }
+    #alert-box.layout-column .custom-alert-image { max-height: min(170px, 25vh); }
+
+    /* Progress-bar appearance effects. These animate color/opacity rather than transform so the timer scale remains intact. */
+    .progress-effect-shimmer .progress-bar {
+      background: linear-gradient(90deg, var(--accent) 0%, #ffffff 45%, var(--accent) 70%);
+      background-size: 220% 100%;
+      animation: progressShimmer 1.15s linear infinite;
+    }
+    .progress-effect-pulse .progress-bar { animation: progressPulse .75s ease-in-out infinite alternate; }
+    .progress-effect-stripes .progress-bar {
+      background-image: repeating-linear-gradient(135deg, transparent 0 8px, rgba(255,255,255,.48) 8px 13px);
+      background-color: var(--accent);
+      background-size: 38px 100%;
+      animation: progressStripes .7s linear infinite;
+    }
+    .progress-effect-glow .progress-bar {
+      box-shadow: 0 0 8px var(--accent-glow), 0 0 18px var(--accent-glow);
+      animation: progressGlow 1.15s ease-in-out infinite alternate;
+    }
+    .progress-effect-segmented .progress-bar {
+      background-image: repeating-linear-gradient(90deg, var(--accent) 0 14px, transparent 14px 18px);
+    }
+    .progress-effect-none .progress-bar { animation: none; box-shadow: none; }
+    @keyframes progressShimmer { from { background-position: 100% 0; } to { background-position: -120% 0; } }
+    @keyframes progressPulse { from { opacity: .65; filter: brightness(.85); } to { opacity: 1; filter: brightness(1.55); } }
+    @keyframes progressStripes { from { background-position: 0 0; } to { background-position: 38px 0; } }
+    @keyframes progressGlow { from { opacity: .75; filter: brightness(.95); } to { opacity: 1; filter: brightness(1.65); } }
+
+    /* ============================================================
+       25+ ENTRANCE (IN) ANIMATION KEYFRAMES
+       ============================================================ */
+    .anim-in-slideUpFade { animation: inSlideUpFade var(--in-duration) cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes inSlideUpFade {
+      0% { opacity: 0; transform: translateY(65px) scale(0.85); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .anim-in-slideDown { animation: inSlideDown var(--in-duration) cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes inSlideDown {
+      0% { opacity: 0; transform: translateY(-75px) scale(0.85); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .anim-in-slideLeft { animation: inSlideLeft var(--in-duration) cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes inSlideLeft {
+      0% { opacity: 0; transform: translateX(-140px) scale(0.9); }
+      100% { opacity: 1; transform: translateX(0) scale(1); }
+    }
+
+    .anim-in-slideRight { animation: inSlideRight var(--in-duration) cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes inSlideRight {
+      0% { opacity: 0; transform: translateX(140px) scale(0.9); }
+      100% { opacity: 1; transform: translateX(0) scale(1); }
+    }
+
+    .anim-in-elasticBounce { animation: inElasticBounce var(--in-duration) cubic-bezier(0.68, -0.6, 0.32, 1.6) forwards; }
+    @keyframes inElasticBounce {
+      0% { opacity: 0; transform: scale(0.3); }
+      55% { opacity: 1; transform: scale(1.08); }
+      75% { transform: scale(0.95); }
+      90% { transform: scale(1.02); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .anim-in-popOvershoot { animation: inPopOvershoot var(--in-duration) cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+    @keyframes inPopOvershoot {
+      0% { opacity: 0; transform: scale(0.5) translateY(20px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .anim-in-flip3DX { animation: inFlip3DX var(--in-duration) cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes inFlip3DX {
+      0% { opacity: 0; transform: perspective(1000px) rotateX(-85deg) translateY(-20px); }
+      60% { opacity: 1; transform: perspective(1000px) rotateX(12deg); }
+      100% { opacity: 1; transform: perspective(1000px) rotateX(0deg) translateY(0); }
+    }
+
+    .anim-in-flip3DY { animation: inFlip3DY var(--in-duration) cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes inFlip3DY {
+      0% { opacity: 0; transform: perspective(1000px) rotateY(85deg) scale(0.85); }
+      60% { opacity: 1; transform: perspective(1000px) rotateY(-10deg) scale(1.02); }
+      100% { opacity: 1; transform: perspective(1000px) rotateY(0deg) scale(1); }
+    }
+
+    .anim-in-glitchIn { animation: inGlitch var(--in-duration) steps(2, end) forwards; }
+    @keyframes inGlitch {
+      0% { opacity: 0; transform: translate(-18px, 6px) skewX(25deg); filter: hue-rotate(90deg) contrast(200%); clip-path: inset(20% 0 50% 0); }
+      20% { opacity: 1; transform: translate(14px, -6px) skewX(-20deg); filter: hue-rotate(-90deg); clip-path: inset(60% 0 10% 0); }
+      40% { transform: translate(-10px, 4px) scale(1.04); clip-path: inset(10% 0 70% 0); }
+      60% { transform: translate(8px, -3px) skewX(10deg); filter: hue-rotate(45deg); clip-path: inset(0 0 0 0); }
+      80% { transform: translate(-4px, 0) skewX(-5deg); filter: none; }
+      100% { opacity: 1; transform: translate(0, 0) skewX(0); filter: none; }
+    }
+
+    .anim-in-tornadoSpin { animation: inTornadoSpin var(--in-duration) cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes inTornadoSpin {
+      0% { opacity: 0; transform: rotate(-540deg) scale(0.1); filter: blur(8px); }
+      100% { opacity: 1; transform: rotate(0deg) scale(1); filter: blur(0px); }
+    }
+
+    .anim-in-skewSpeed { animation: inSkewSpeed var(--in-duration) cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes inSkewSpeed {
+      0% { opacity: 0; transform: translateX(-220px) skewX(-35deg); }
+      65% { opacity: 1; transform: translateX(15px) skewX(12deg); }
+      85% { transform: translateX(-5px) skewX(-4deg); }
+      100% { opacity: 1; transform: translateX(0) skewX(0deg); }
+    }
+
+    .anim-in-dropBounce { animation: inDropBounce var(--in-duration) ease-out forwards; }
+    @keyframes inDropBounce {
+      0% { opacity: 0; transform: translateY(-200px); }
+      45% { opacity: 1; transform: translateY(0); }
+      65% { transform: translateY(-32px); }
+      82% { transform: translateY(0); }
+      92% { transform: translateY(-10px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .anim-in-neonFlicker { animation: inNeonFlicker var(--in-duration) linear forwards; }
+    @keyframes inNeonFlicker {
+      0% { opacity: 0; transform: scale(0.96); filter: brightness(0); }
+      15% { opacity: 0.9; filter: brightness(2.5); }
+      25% { opacity: 0.1; filter: brightness(0.2); }
+      40% { opacity: 1; filter: brightness(2); }
+      55% { opacity: 0.25; }
+      70% { opacity: 1; filter: brightness(1.5); }
+      85% { opacity: 0.6; }
+      100% { opacity: 1; transform: scale(1); filter: brightness(1); }
+    }
+
+    .anim-in-unfoldHorizontal { animation: inUnfoldHorizontal var(--in-duration) cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes inUnfoldHorizontal {
+      0% { opacity: 0; transform: scaleX(0.02) scaleY(0.05); }
+      50% { opacity: 1; transform: scaleX(1.03) scaleY(0.05); }
+      100% { opacity: 1; transform: scaleX(1) scaleY(1); }
+    }
+
+    .anim-in-rubberBand { animation: inRubberBand var(--in-duration) ease-out forwards; }
+    @keyframes inRubberBand {
+      0% { opacity: 0; transform: scale3d(0.5, 0.5, 1); }
+      35% { opacity: 1; transform: scale3d(1.22, 0.78, 1); }
+      50% { transform: scale3d(0.82, 1.18, 1); }
+      65% { transform: scale3d(1.1, 0.9, 1); }
+      80% { transform: scale3d(0.96, 1.04, 1); }
+      100% { opacity: 1; transform: scale3d(1, 1, 1); }
+    }
+
+    .anim-in-earthquakeSlam { animation: inEarthquakeSlam var(--in-duration) cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+    @keyframes inEarthquakeSlam {
+      0% { opacity: 0; transform: scale(2.4); filter: blur(10px); }
+      40% { opacity: 1; transform: scale(0.95) translate(-8px, 6px); filter: blur(0px); }
+      55% { transform: translate(8px, -6px); }
+      70% { transform: translate(-6px, -4px); }
+      85% { transform: translate(4px, 4px); }
+      100% { opacity: 1; transform: scale(1) translate(0, 0); }
+    }
+
+    .anim-in-zoomFade { animation: inZoomFade var(--in-duration) cubic-bezier(.16, 1, .3, 1) forwards; }
+    @keyframes inZoomFade { 0% { opacity: 0; transform: scale(.18); filter: blur(12px); } 100% { opacity: 1; transform: scale(1); filter: blur(0); } }
+    .anim-in-rotateIn { animation: inRotateIn var(--in-duration) cubic-bezier(.16, 1, .3, 1) forwards; }
+    @keyframes inRotateIn { 0% { opacity: 0; transform: rotate(-145deg) scale(.35); } 75% { opacity: 1; transform: rotate(10deg) scale(1.04); } 100% { opacity: 1; transform: rotate(0) scale(1); } }
+    .anim-in-bounceInLeft { animation: inBounceInLeft var(--in-duration) cubic-bezier(.16, 1, .3, 1) forwards; }
+    @keyframes inBounceInLeft { 0% { opacity: 0; transform: translateX(-360px) scale(.75); } 65% { opacity: 1; transform: translateX(22px) scale(1.03); } 82% { transform: translateX(-9px); } 100% { opacity: 1; transform: translateX(0); } }
+    .anim-in-bounceInRight { animation: inBounceInRight var(--in-duration) cubic-bezier(.16, 1, .3, 1) forwards; }
+    @keyframes inBounceInRight { 0% { opacity: 0; transform: translateX(360px) scale(.75); } 65% { opacity: 1; transform: translateX(-22px) scale(1.03); } 82% { transform: translateX(9px); } 100% { opacity: 1; transform: translateX(0); } }
+    .anim-in-blurFocus { animation: inBlurFocus var(--in-duration) ease-out forwards; }
+    @keyframes inBlurFocus { 0% { opacity: 0; filter: blur(24px); transform: scale(1.12); } 100% { opacity: 1; filter: blur(0); transform: scale(1); } }
+    .anim-in-spiralIn { animation: inSpiralIn var(--in-duration) cubic-bezier(.16, 1, .3, 1) forwards; }
+    @keyframes inSpiralIn { 0% { opacity: 0; transform: rotate(-720deg) scale(.08); filter: blur(8px); } 100% { opacity: 1; transform: rotate(0) scale(1); filter: blur(0); } }
+    .anim-in-cardFlip { animation: inCardFlip var(--in-duration) cubic-bezier(.16, 1, .3, 1) forwards; }
+    @keyframes inCardFlip { 0% { opacity: 0; transform: perspective(900px) rotateY(-180deg) scale(.8); } 72% { opacity: 1; transform: perspective(900px) rotateY(14deg); } 100% { opacity: 1; transform: perspective(900px) rotateY(0); } }
+    .anim-in-lightningIn { animation: inLightningIn var(--in-duration) steps(2, end) forwards; }
+    @keyframes inLightningIn { 0% { opacity: 0; transform: translateX(-18px); filter: brightness(3); clip-path: inset(0 100% 0 0); } 22% { opacity: 1; filter: brightness(.5); clip-path: inset(20% 0 35% 0); } 45% { transform: translateX(12px); filter: brightness(2); clip-path: inset(0 0 0 0); } 68% { transform: translateX(-5px); filter: brightness(1.3); } 100% { opacity: 1; transform: translateX(0); filter: none; clip-path: inset(0 0 0 0); } }
+    .anim-in-swingDrop { animation: inSwingDrop var(--in-duration) ease-out forwards; transform-origin: top center; }
+    @keyframes inSwingDrop { 0% { opacity: 0; transform: translateY(-160px) rotate(18deg); } 55% { opacity: 1; transform: translateY(0) rotate(-8deg); } 75% { transform: rotate(4deg); } 100% { opacity: 1; transform: rotate(0); } }
+    .anim-in-materialize { animation: inMaterialize var(--in-duration) cubic-bezier(.16, 1, .3, 1) forwards; }
+    @keyframes inMaterialize { 0% { opacity: 0; transform: scale(.92); filter: blur(18px) brightness(2); } 35% { opacity: .35; filter: blur(8px) brightness(1.8); } 100% { opacity: 1; transform: scale(1); filter: blur(0) brightness(1); } }
+
+    /* ============================================================
+       22+ EXIT (OUT) ANIMATION KEYFRAMES
+       ============================================================ */
+    .anim-out-floatUpFade { animation: outFloatUpFade var(--out-duration) cubic-bezier(0.4, 0, 1, 1) forwards; }
+    @keyframes outFloatUpFade {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-55px) scale(0.9); }
+    }
+
+    .anim-out-dropDownFade { animation: outDropDownFade var(--out-duration) cubic-bezier(0.4, 0, 1, 1) forwards; }
+    @keyframes outDropDownFade {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(65px) scale(0.88); }
+    }
+
+    .anim-out-shootLeft { animation: outShootLeft var(--out-duration) cubic-bezier(0.4, 0, 1, 1) forwards; }
+    @keyframes outShootLeft {
+      0% { opacity: 1; transform: translateX(0) skewX(0deg); }
+      25% { transform: translateX(18px) skewX(-8deg); }
+      100% { opacity: 0; transform: translateX(-220px) skewX(28deg); }
+    }
+
+    .anim-out-shootRight { animation: outShootRight var(--out-duration) cubic-bezier(0.4, 0, 1, 1) forwards; }
+    @keyframes outShootRight {
+      0% { opacity: 1; transform: translateX(0) skewX(0deg); }
+      25% { transform: translateX(-18px) skewX(8deg); }
+      100% { opacity: 0; transform: translateX(220px) skewX(-28deg); }
+    }
+
+    .anim-out-implodeZoom { animation: outImplodeZoom var(--out-duration) cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards; }
+    @keyframes outImplodeZoom {
+      0% { opacity: 1; transform: scale(1); }
+      30% { transform: scale(1.08); }
+      100% { opacity: 0; transform: scale(0.05); }
+    }
+
+    .anim-out-explodeZoom { animation: outExplodeZoom var(--out-duration) cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes outExplodeZoom {
+      0% { opacity: 1; transform: scale(1); filter: blur(0px) brightness(1); }
+      100% { opacity: 0; transform: scale(1.65); filter: blur(14px) brightness(2.2); }
+    }
+
+    .anim-out-flipOutX { animation: outFlipOutX var(--out-duration) ease-in forwards; }
+    @keyframes outFlipOutX {
+      0% { opacity: 1; transform: perspective(1000px) rotateX(0deg); }
+      100% { opacity: 0; transform: perspective(1000px) rotateX(85deg) translateY(20px); }
+    }
+
+    .anim-out-flipOutY { animation: outFlipOutY var(--out-duration) ease-in forwards; }
+    @keyframes outFlipOutY {
+      0% { opacity: 1; transform: perspective(1000px) rotateY(0deg); }
+      100% { opacity: 0; transform: perspective(1000px) rotateY(-85deg) scale(0.85); }
+    }
+
+    .anim-out-glitchOut { animation: outGlitch var(--out-duration) steps(2, end) forwards; }
+    @keyframes outGlitch {
+      0% { opacity: 1; transform: translate(0, 0); }
+      25% { transform: translate(-15px, 4px) skewX(22deg); filter: hue-rotate(120deg); }
+      50% { opacity: 0.7; transform: translate(16px, -6px) skewX(-28deg); clip-path: inset(30% 0 20% 0); }
+      75% { opacity: 0.3; transform: translate(-20px, 2px) scaleX(1.2); filter: invert(1); }
+      100% { opacity: 0; transform: translate(0, 0) scale(0.8); }
+    }
+
+    .anim-out-tvTurnOff { animation: outTvTurnOff var(--out-duration) cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+    @keyframes outTvTurnOff {
+      0% { opacity: 1; transform: scale3d(1, 1, 1); filter: brightness(1); }
+      45% { opacity: 1; transform: scale3d(1.1, 0.02, 1); filter: brightness(3); }
+      100% { opacity: 0; transform: scale3d(0, 0, 1); filter: brightness(5); }
+    }
+
+    .anim-out-spinOut { animation: outSpinOut var(--out-duration) ease-in forwards; }
+    @keyframes outSpinOut {
+      0% { opacity: 1; transform: rotate(0deg) scale(1); }
+      100% { opacity: 0; transform: rotate(360deg) scale(0.1); filter: blur(6px); }
+    }
+
+    .anim-out-hingeDrop { animation: outHingeDrop var(--out-duration) ease-in-out forwards; transform-origin: top left; }
+    @keyframes outHingeDrop {
+      0% { opacity: 1; transform: rotate(0deg); transform-origin: top left; }
+      35% { transform: rotate(55deg); transform-origin: top left; }
+      65% { opacity: 1; transform: rotate(40deg) translateY(0); transform-origin: top left; }
+      100% { opacity: 0; transform: rotate(70deg) translateY(220px); transform-origin: top left; }
+    }
+
+    .anim-out-neonPowerDown { animation: outNeonPowerDown var(--out-duration) linear forwards; }
+    @keyframes outNeonPowerDown {
+      0% { opacity: 1; filter: brightness(1); }
+      20% { opacity: 0.2; filter: brightness(0.2); }
+      40% { opacity: 0.9; filter: brightness(2); }
+      60% { opacity: 0.1; }
+      75% { opacity: 0.5; }
+      100% { opacity: 0; transform: scale(0.95); filter: brightness(0); }
+    }
+
+    .anim-out-dissolveBlur { animation: outDissolveBlur var(--out-duration) ease-out forwards; }
+    @keyframes outDissolveBlur {
+      0% { opacity: 1; filter: blur(0px); transform: translateY(0) scale(1); }
+      100% { opacity: 0; filter: blur(22px); transform: translateY(-20px) scale(1.08); }
+    }
+
+    .anim-out-shrinkFade { animation: outShrinkFade var(--out-duration) ease-in forwards; }
+    @keyframes outShrinkFade { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(.15); filter: blur(8px); } }
+    .anim-out-slideDownRight { animation: outSlideDownRight var(--out-duration) ease-in forwards; }
+    @keyframes outSlideDownRight { 0% { opacity: 1; transform: translate(0,0); } 100% { opacity: 0; transform: translate(180px,100px) rotate(12deg); } }
+    .anim-out-rotateOut { animation: outRotateOut var(--out-duration) ease-in forwards; }
+    @keyframes outRotateOut { 0% { opacity: 1; transform: rotate(0) scale(1); } 100% { opacity: 0; transform: rotate(125deg) scale(.55); filter: blur(5px); } }
+    .anim-out-bounceOut { animation: outBounceOut var(--out-duration) ease-in forwards; }
+    @keyframes outBounceOut { 0% { opacity: 1; transform: scale(1); } 25% { transform: scale(.92); } 55% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0; transform: scale(.2); } }
+    .anim-out-blurOut { animation: outBlurOut var(--out-duration) ease-in forwards; }
+    @keyframes outBlurOut { 0% { opacity: 1; filter: blur(0); transform: scale(1); } 100% { opacity: 0; filter: blur(26px); transform: scale(1.06); } }
+    .anim-out-spiralOut { animation: outSpiralOut var(--out-duration) ease-in forwards; }
+    @keyframes outSpiralOut { 0% { opacity: 1; transform: rotate(0) scale(1); } 100% { opacity: 0; transform: rotate(540deg) scale(.05); filter: blur(7px); } }
+    .anim-out-foldOut { animation: outFoldOut var(--out-duration) ease-in forwards; transform-origin: center; }
+    @keyframes outFoldOut { 0% { opacity: 1; transform: perspective(900px) rotateX(0) scale(1); } 100% { opacity: 0; transform: perspective(900px) rotateX(-85deg) scale(.92); } }
+    .anim-out-swingOut { animation: outSwingOut var(--out-duration) ease-in forwards; transform-origin: top left; }
+    @keyframes outSwingOut { 0% { opacity: 1; transform: rotate(0); } 35% { transform: rotate(12deg); } 65% { transform: rotate(-8deg); } 100% { opacity: 0; transform: rotate(28deg) translateY(80px); } }
+
+    /* Pure Overlay Mode (when ?overlay=true is passed in OBS) */
+    body.pure-overlay-mode {
+      background: transparent !important;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+    body.pure-overlay-mode #studio-ui {
+      display: none !important;
+    }
+    body.pure-overlay-mode #pure-overlay-container {
+      display: flex !important;
+    }
+  
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: transparent !important;
+      display: flex;
+      justify-content: center; align-items: flex-start; padding-top: 48px;
+      perspective: 1200px;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="alert-box" class="layout-row progress-bottom">
+    <div id="avatar-container" class="avatar-container shape-circle avatar-anim-random">
+      <img id="user-avatar" class="user-avatar" src="" alt="User Avatar" />
+      <div class="platform-mini-badge" id="platform-icon"></div>
+    </div>
+    <div class="custom-image-container" id="custom-image-container">
+      <img id="custom-alert-image" class="custom-alert-image" src="image.png" alt="Custom alert artwork" />
+    </div>
+    <div class="alert-content">
+      <div class="alert-header">
+        <span class="platform-tag" id="platform-name">TWITCH</span>
+        <span class="alert-type" id="alert-title">NEW FOLLOWER</span>
+      </div>
+      <div class="alert-user" id="alert-username">Username</div>
+      <div class="alert-detail" id="alert-detail"></div>
+    </div>
+    <div class="progress-bar" id="progress-bar"></div>
+  </div>
+
+  <audio id="alert-audio" preload="auto"></audio>
+
+  <script>
+(function () {
+  const FX = window.FX = {};
+  const $ = id => document.getElementById(id);
+
+  /* ---------- Platforms ---------- */
+  FX.PCOL = { twitch: "#9146FF", kick: "#53FC18", youtube: "#FF0033", streamlabs: "#80F5D2", streamelements: "#1D5BFF" };
+  FX.PNAME = { twitch: "TWITCH", kick: "KICK", youtube: "YOUTUBE", streamlabs: "STREAMLABS", streamelements: "STREAMELEMENTS" };
+  FX.ICONS = {
+    youtube: `<svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1c.5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8zM9.6 15.6V8.4l6.2 3.6-6.2 3.6z"/></svg>`,
+    streamlabs: `<svg viewBox="0 0 24 24"><path d="M12 2C7 2 4.500 4.500 4.500 8c0 1.200.4 2.200 1 3L3 15c-.8 2 .2 4 2.200 5 3.600 1.800 10 1.800 13.600 0 2-1 3-3 2.200-5l-2.500-4c.6-.8 1-1.800 1-3C19.500 4.500 17 2 12 2zm0 3c2 0 3.500.9 3.500 2.500S14 10 12 10 8.500 9.100 8.500 7.500 10 5 12 5z"/></svg>`,
+    streamelements: `<svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>`
+  };
+  FX.normPlatform = p => {
+    p = String(p || "twitch").toLowerCase().replace(/[^a-z]/g, "");
+    if (p.includes("youtube") || p === "yt") return "youtube";
+    if (p.includes("kick")) return "kick";
+    if (p.includes("streamlabs")) return "streamlabs";
+    if (p.includes("streamelements") || p === "se") return "streamelements";
+    return "twitch";
+  };
+  FX.platColor = (s, p) => p === "kick" ? s.kickColor : p === "twitch" ? s.twitchColor : ((s.platColors || {})[p] || FX.PCOL[p]);
+
+  /* ---------- Extra alert types: [title, message, color] ---------- */
+  FX.TYPES = {
+    tip: ["TIP / DONATION", "Donated {amount}! {message}", "#10B981"],
+    superchat: ["SUPER CHAT", "Super Chat {amount}! {message}", "#FFB300"],
+    supersticker: ["SUPER STICKER", "Sent a Super Sticker {amount}!", "#FF6D00"],
+    member: ["NEW MEMBER", "Just became a member!", "#00BFA5"],
+    membergift: ["GIFTED MEMBERSHIPS", "Gifted {count} memberships!", "#E040FB"],
+    milestone: ["MEMBER MILESTONE", "Member for {months} months!", "#2979FF"],
+    merch: ["NEW MERCH ORDER", "Bought {message}!", "#FF4081"],
+    host: ["HOSTED", "Hosting with {viewers} viewers!", "#FFAB40"],
+    charity: ["CHARITY DONATION", "Donated {amount} to charity! {message}", "#69F0AE"],
+    shoutout: ["SHOUTOUT", "Go follow {user}! Last playing {game}", "#9146FF"]
+  };
+  FX.extendDefaults = d => {
+    Object.entries(FX.TYPES).forEach(([k, v]) => { d.typeLabels[k] = v[0]; d.detailLabels[k] = v[1]; d.eventColors[k] = v[2]; });
+    d.platColors = { youtube: FX.PCOL.youtube, streamlabs: FX.PCOL.streamlabs, streamelements: FX.PCOL.streamelements };
+    Object.assign(d, { avatarRing: "none", badgeStyle: "circle", badgePos: "br", imageDim: 35, frameInsetX: 9, frameInsetY: 25, frameLock: true });
+  };
+  FX.extraClasses = s => `ring-${s.avatarRing || "none"} pb-${s.badgeStyle || "circle"} bp-${s.badgePos || "br"}`;
+
+  /* ---------- Raw Streamer.bot event mapping (optional "raw events" mode) ---------- */
+  FX.fromRaw = (src, t, d) => {
+    let u = d.user?.name || d.user?.displayName || d.userName || d.user || d.donor || d.name || d.username || d.from;
+    if (!u || typeof u !== "string") return null;
+    const l = t.toLowerCase(), plat = FX.normPlatform(src);
+    let type = "tip";
+    if (l.includes("supersticker")) type = "supersticker";
+    else if (l.includes("superchat")) type = "superchat";
+    else if (l.includes("milestone")) type = "milestone";
+    else if (l.includes("gift")) type = "membergift";
+    else if (l.includes("sponsor") || l.includes("member")) type = "member";
+    else if (l.includes("merch")) type = "merch";
+    else if (l.includes("charity")) type = "charity";
+    else if (l.includes("host")) type = "host";
+    else if (l.includes("raid")) type = "raid";
+    else if (l.includes("cheer") || l.includes("bits")) type = "cheer";
+    else if (l.includes("follow") || l.includes("newsubscriber")) type = "follow";
+    else if (l.includes("resub")) type = "resub";
+    else if (l.includes("sub")) type = "sub";
+    return { platform: plat, type, user: u, avatar: d.user?.profileImageUrl || d.avatar || "", title: plat === "youtube" && type === "follow" ? "NEW SUBSCRIBER" : "", useTemplate: true,
+      amount: d.formattedAmount || d.amount || "", currency: d.currency || "", message: d.message || "", months: d.months || d.cumulativeMonths || d.memberMonth || "", count: d.count || d.giftCount || "", viewers: d.viewers || "" };
+  };
+  FX.subscribeExtra = ws => {
+    const E = { YouTube: ["NewSubscriber", "SuperChat", "SuperSticker", "NewSponsor", "MemberMileStone", "MembershipGift", "GiftMembershipReceived"],
+      Streamlabs: ["Donation", "Merchandise", "Follow", "Subscription", "Raid", "Host", "Bits"], StreamElements: ["Tip", "Follow", "Subscriber", "Cheer", "Raid", "Host", "Merch"] };
+    // one request per event so an unknown event name can't break the others
+    Object.keys(E).forEach(k => E[k].forEach(t => ws.send(JSON.stringify({ request: "Subscribe", id: `fx-${k}-${t}`, events: { [k]: [t] } }))));
+  };
+
+  /* ---------- Procedural CSS: entrance / exit / idle / progress / frames / layouts ---------- */
+  let css = "";
+  const DIRS = [["Up", [0, -70]], ["Down", [0, 70]], ["Left", [-110, 0]], ["Right", [110, 0]], ["Up-Left", [-80, -70]], ["Up-Right", [80, -70]], ["Down-Left", [-80, 70]], ["Down-Right", [80, 70]]];
+  const FLV = [["Plain", "", ""], ["Blur", "", "blur(18px)"], ["Spin", "rotate(160deg)", ""], ["Flip X", "perspective(900px) rotateX(85deg)", ""], ["Flip Y", "perspective(900px) rotateY(85deg)", ""], ["Skew", "skewX(35deg)", ""], ["Elastic", "", "", "cubic-bezier(.68,-.6,.32,1.6)", "cubic-bezier(.6,-.28,.735,.045)"], ["Flash", "", "brightness(4) blur(5px)"]];
+  FX.IN = []; FX.OUT = [];
+  const bases = DIRS.map(([n, v]) => ["Slide " + n, `translate(${-v[0]}px,${-v[1]}px)`, `translate(${v[0]}px,${v[1]}px)`]).concat([["Zoom In", "scale(.2)", "scale(.2)"], ["Zoom Out", "scale(2.4)", "scale(2.4)"]]);
+  bases.forEach(([bn, tin, tout], bi) => FLV.forEach(([fn, ft, ff, ei, eo], fi) => {
+    const k = `${bi}_${fi}`, join = (a, b) => (a + " " + b).trim() || "none";
+    css += `@keyframes fxi${k}{from{opacity:0;transform:${join(tin, ft)};filter:${ff || "none"}}to{opacity:1;transform:none;filter:none}}.anim-in-fxi${k}{animation:fxi${k} var(--in-duration) ${ei || "cubic-bezier(.16,1,.3,1)"} forwards}`;
+    css += `@keyframes fxo${k}{from{opacity:1;transform:none;filter:none}to{opacity:0;transform:${join(tout, ft)};filter:${ff || "none"}}}.anim-out-fxo${k}{animation:fxo${k} var(--out-duration) ${eo || "cubic-bezier(.4,0,1,1)"} forwards}`;
+    FX.IN.push({ id: "fxi" + k, name: `${bn} · ${fn}`, badge: fn });
+    FX.OUT.push({ id: "fxo" + k, name: `${bn} · ${fn}`, badge: fn });
+  }));
+
+  const IM = [["Bob", "translateY(0)", "translateY(-9px)", 1.6], ["Sway", "translateX(-7px)", "translateX(7px)", 2], ["Tilt", "rotate(-7deg)", "rotate(7deg)", 2.2], ["Breathe", "scale(1)", "scale(1.09)", 2], ["Jelly", "scale(1,1)", "scale(1.1,.9)", 1.1], ["Wobble", "skewX(-7deg)", "skewX(7deg)", 1.4], ["Orbit", "translate(6px,-6px)", "translate(-6px,6px)", 2.4], ["Swing", "rotate(-12deg)", "rotate(12deg) translateY(-5px)", 2.8], ["Zoomy", "scale(.95) rotate(-3deg)", "scale(1.12) rotate(3deg)", 1.3], ["Turn 3D", "perspective(400px) rotateY(-24deg)", "perspective(400px) rotateY(24deg)", 2.6]];
+  const IF = [["Clean", "none", "none"], ["Glow", "drop-shadow(0 0 2px var(--accent))", "drop-shadow(0 0 16px var(--accent))"], ["Hue", "hue-rotate(0deg)", "hue-rotate(70deg)"], ["Bright", "brightness(1)", "brightness(1.45)"], ["Vivid", "saturate(1)", "saturate(2.2)"], ["Punch", "contrast(1)", "contrast(1.5)"], ["Sepia", "sepia(0)", "sepia(.8)"], ["Soft", "blur(0)", "blur(1.6px)"], ["Invert", "invert(0)", "invert(.3)"], ["Ghost", "grayscale(0)", "grayscale(.85)"]];
+  FX.IDLE = [];
+  IM.forEach(([mn, a, b, dur], mi) => IF.forEach(([fn, f0, f1], fi) => {
+    const k = `${mi}_${fi}`;
+    css += `@keyframes fxd${k}{0%,100%{transform:${a};filter:${f0}}50%{transform:${b};filter:${f1}}}.avatar-anim-fxd${k}{animation:fxd${k} ${dur}s ease-in-out infinite}`;
+    FX.IDLE.push({ id: "fxd" + k, name: `${mn} + ${fn}` });
+  }));
+
+  const PB = [["Neon", "linear-gradient(90deg,var(--accent),#fff,var(--accent))", "200% 100%", ""], ["Rainbow", "linear-gradient(90deg,#f0f,#0ff,#ff0,#f0f)", "200% 100%", ""], ["Fire", "linear-gradient(90deg,#f00,#fa0,#ff0,#f00)", "200% 100%", ""], ["Ice", "linear-gradient(90deg,#0ff,#fff,#09f,#0ff)", "200% 100%", ""], ["Dashes", "repeating-linear-gradient(90deg,var(--accent) 0 14px,transparent 14px 20px)", "auto", ""], ["Dots", "radial-gradient(circle,var(--accent) 45%,transparent 50%) 0 0/10px 100%", "auto", ""], ["Thick", "var(--accent)", "auto", "height:9px;"], ["Tube", "linear-gradient(180deg,#fff8,var(--accent) 50%,#0006)", "auto", "height:7px;box-shadow:0 0 14px var(--accent);"], ["Candy", "repeating-linear-gradient(135deg,var(--accent) 0 8px,#fff 8px 16px)", "auto", "height:7px;"], ["Comet", "linear-gradient(90deg,transparent,var(--accent) 30%,#fff 50%,var(--accent) 70%,transparent)", "200% 100%", ""]];
+  const PA = [["Scroll", "from{background-position:0 0}to{background-position:200px 0}", "1.6s linear infinite"], ["Pulse", "from{opacity:.45}to{opacity:1}", ".8s ease-in-out infinite alternate"], ["Glow", "from{filter:brightness(.9)}to{filter:brightness(1.9) drop-shadow(0 0 6px var(--accent))}", ".9s ease-in-out infinite alternate"], ["Hue Cycle", "to{filter:hue-rotate(360deg)}", "3s linear infinite"], ["Flicker", "0%,19%,22%,62%,64%,100%{opacity:1}20%,63%{opacity:.35}", "1.4s linear infinite"], ["Breathe", "from{filter:brightness(.8) saturate(.9)}to{filter:brightness(1.5) saturate(1.6)}", "2s ease-in-out infinite alternate"], ["Blink", "0%,49%{opacity:1}50%,100%{opacity:.2}", ".9s steps(1) infinite"], ["Wave", "from{height:3px}to{height:9px}", ".7s ease-in-out infinite alternate"], ["Sparkle", "0%,100%{filter:brightness(1)}10%{filter:brightness(2.4)}20%{filter:brightness(1)}60%{filter:brightness(1.8)}", "1.2s linear infinite"], ["Static", "", "none"]];
+  PA.forEach(([, kf], ai) => { if (kf) css += `@keyframes fxpa${ai}{${kf}}`; });
+  FX.PROG = [];
+  PB.forEach(([bn, bg, bs, ex], bi) => PA.forEach(([an, kf, tim], ai) => {
+    const k = `${bi}_${ai}`;
+    css += `.progress-effect-fxp${k} .progress-bar{background:${bg};background-size:${bs};${ex}animation:${kf ? `fxpa${ai} ${tim}` : "none"}}`;
+    FX.PROG.push({ id: "fxp" + k, name: `${bn} + ${an}` });
+  }));
+
+  // Avatar frames (clip-path shapes), rings, badge styles/positions
+  const SH = { octagon: "polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%)", pentagon: "polygon(50% 0,100% 38%,82% 100%,18% 100%,0 38%)", star: "polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)", shield: "polygon(0 0,100% 0,100% 60%,50% 100%,0 60%)", triangle: "polygon(50% 4%,100% 92%,0 92%)", cross: "polygon(33% 0,67% 0,67% 33%,100% 33%,100% 67%,67% 67%,67% 100%,33% 100%,33% 67%,0 67%,0 33%,33% 33%)", ticket: "polygon(0 10%,10% 0,90% 0,100% 10%,100% 90%,90% 100%,10% 100%,0 90%)", slant: "polygon(12% 0,100% 0,88% 100%,0 100%)" };
+  FX.SHAPES = Object.keys(SH).concat(["squircle", "blob", "leaf"]);
+  Object.entries(SH).forEach(([k, v]) => css += `.shape-${k} .user-avatar{border-radius:0;clip-path:${v}}`);
+  css += `.shape-squircle .user-avatar{border-radius:32%}.shape-blob .user-avatar{border-radius:63% 37% 54% 46%/55% 48% 52% 45%}.shape-leaf .user-avatar{border-radius:0 50% 0 50%}`;
+  FX.RINGS = [["none", "No Extra Ring"], ["double", "Double Ring"], ["triple", "Triple Ring"], ["glow", "Neon Halo"], ["gold", "Gold Trim"], ["rainbow", "Rainbow Border"], ["dashed", "Dashed Border"], ["dotted", "Dotted Border"], ["thick", "Thick Border"], ["white", "White Neon"], ["offset", "Offset Shadow"], ["spin", "Spinning Ring"], ["ping", "Radar Ping"]];
+  css += `.ring-double .user-avatar{box-shadow:0 0 0 4px #0e0e12,0 0 0 7px var(--accent)}.ring-triple .user-avatar{box-shadow:0 0 0 3px var(--accent),0 0 0 6px #0e0e12,0 0 0 9px var(--accent)}.ring-glow .user-avatar{box-shadow:0 0 0 3px var(--accent),0 0 30px 8px var(--accent-glow)}.ring-gold .user-avatar{border-color:#FFD54F;box-shadow:0 0 0 4px #7a5b00,0 0 18px #FFD54F}.ring-rainbow .user-avatar{border:4px solid transparent;background:linear-gradient(#18181b,#18181b) padding-box,conic-gradient(#f0f,#0ff,#0f0,#ff0,#f0f) border-box}.ring-dashed .user-avatar{border-style:dashed;border-width:4px}.ring-dotted .user-avatar{border-style:dotted;border-width:5px}.ring-thick .user-avatar{border-width:7px}.ring-white .user-avatar{border-color:#fff;box-shadow:0 0 10px #fff,0 0 24px var(--accent),0 0 40px var(--accent)}.ring-offset .user-avatar{box-shadow:6px 6px 0 var(--accent)}.ring-spin::before,.ring-ping::before{content:"";position:absolute;inset:-7px;border-radius:50%;z-index:-1}.ring-spin::before{background:conic-gradient(var(--accent),transparent,var(--accent));animation:fxspin 2s linear infinite}.ring-ping::before{border:3px solid var(--accent);animation:fxping 1.4s ease-out infinite}@keyframes fxspin{to{transform:rotate(360deg)}}@keyframes fxping{from{transform:scale(1);opacity:.8}to{transform:scale(1.55);opacity:0}}`;
+  FX.BADGES = [["circle", "Circle (Default)"], ["square", "Rounded Square"], ["hex", "Hexagon"], ["glow", "Glowing"], ["solid", "Solid Accent"], ["plain", "Icon Only"], ["big", "Large"], ["mini", "Tiny"]];
+  FX.BPOS = [["br", "Bottom Right"], ["bl", "Bottom Left"], ["tr", "Top Right"], ["tl", "Top Left"], ["bc", "Bottom Center"]];
+  css += `.pb-square .platform-mini-badge{border-radius:7px}.pb-hex .platform-mini-badge{border-radius:0;clip-path:polygon(25% 5%,75% 5%,100% 50%,75% 95%,25% 95%,0 50%)}.pb-glow .platform-mini-badge{box-shadow:0 0 14px var(--accent)}.pb-solid .platform-mini-badge{background:var(--accent)}.pb-solid .platform-mini-badge svg{fill:var(--badge-text)}.pb-plain .platform-mini-badge{background:transparent;border:0;box-shadow:none}.pb-plain .platform-mini-badge svg{width:24px;height:24px;filter:drop-shadow(0 2px 4px #000)}.pb-big .platform-mini-badge{width:38px;height:38px}.pb-big .platform-mini-badge svg{width:22px;height:22px}.pb-mini .platform-mini-badge{width:20px;height:20px}.pb-mini .platform-mini-badge svg{width:11px;height:11px}.bp-bl .platform-mini-badge{right:auto;left:-2px}.bp-tr .platform-mini-badge{bottom:auto;top:-2px}.bp-tl .platform-mini-badge{bottom:auto;top:-2px;right:auto;left:-2px}.bp-bc .platform-mini-badge{right:auto;left:50%;margin-left:-14px}`;
+
+  FX.LAYOUTS = [["banner", "Wide Banner Strip"], ["split", "Split Accent Panel"], ["ticker", "Slim Ticker"], ["neon", "Neon Outline"], ["cut", "Cut-Corner Tech"], ["skew", "Slanted Parallelogram"], ["terminal", "Terminal Scanlines"], ["minimal", "Minimal (No Box)"], ["bubble", "Chat Bubble"], ["hud", "HUD Frame"], ["double", "Double Border"], ["window", "Retro Window"], ["ribbon", "Ribbon Tab"], ["mega", "Mega Centered"], ["pillxl", "Big Pill"], ["leftcol", "Left Column Stack"]];
+  css += `#alert-box.layout-banner{min-width:660px;padding:18px 46px;border-radius:4px;border-left:14px solid var(--accent);gap:28px}
+#alert-box.layout-split{padding:0;gap:0}#alert-box.layout-split .avatar-container{width:calc(var(--avatar-size) + 56px);height:auto;align-self:stretch;display:flex;align-items:center;justify-content:center;background:var(--accent-glow)}#alert-box.layout-split .user-avatar{width:var(--avatar-size);height:var(--avatar-size)}#alert-box.layout-split .alert-content{padding:22px 40px 22px 28px}
+#alert-box.layout-ticker{min-width:340px;padding:8px 22px;gap:12px;border-radius:8px}.layout-ticker .avatar-container{--avatar-size:44px}.layout-ticker .alert-user{font-size:1.3rem}.layout-ticker .alert-detail{margin-top:0;font-size:.8rem}.layout-ticker .alert-header{margin:0}.layout-ticker .platform-mini-badge{display:none}
+#alert-box.layout-neon{background:transparent;backdrop-filter:none;border-width:3px;box-shadow:0 0 var(--glow-spread) var(--accent),inset 0 0 calc(var(--glow-spread)*.7) var(--accent-glow)}
+#alert-box.layout-cut{border-radius:0;clip-path:polygon(18px 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%,0 18px)}
+#alert-box.layout-skew{border-radius:0;clip-path:polygon(5% 0,100% 0,95% 100%,0 100%);padding-left:56px;padding-right:56px}
+#alert-box.layout-terminal{border-radius:2px;font-family:ui-monospace,Consolas,monospace!important;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 3px)}
+#alert-box.layout-minimal{background:transparent;backdrop-filter:none;border-color:transparent;box-shadow:none}.layout-minimal .alert-content{text-shadow:0 2px 12px #000}
+#alert-box.layout-bubble{border-radius:30px 30px 30px 4px}
+#alert-box.layout-hud{border-radius:0;outline:2px solid var(--accent);outline-offset:-12px;padding:34px 50px}
+#alert-box.layout-double{box-shadow:0 0 0 5px var(--bg-color),0 0 0 7px var(--accent),0 0 var(--glow-spread) var(--accent-glow)}
+#alert-box.layout-window{padding-top:46px;border-radius:8px}#alert-box.layout-window::after{content:"● ● ●  ALERT.EXE";position:absolute;top:0;left:0;right:0;height:24px;padding:0 14px;font:700 10px/24px ui-monospace,monospace;letter-spacing:3px;background:var(--accent);color:var(--badge-text)}
+#alert-box.layout-ribbon{border-radius:0 60px 60px 0;border-left:16px solid var(--accent);padding-right:56px}
+#alert-box.layout-mega{flex-direction:column;text-align:center;min-width:460px;padding:38px 56px;gap:16px}.layout-mega .alert-header{justify-content:center}.layout-mega .alert-user{font-size:calc(var(--user-font-size)*1.45)}
+#alert-box.layout-pillxl{border-radius:9999px;padding:18px 54px 18px 22px;min-width:520px}
+#alert-box.layout-leftcol{flex-direction:column;align-items:flex-start;text-align:left;min-width:380px;padding:26px 36px;gap:14px}`;
+
+  css += `#alert-box[data-frame]::after{display:none}#alert-box[data-frame] .progress-bar{left:var(--fx-px);right:var(--fx-px);width:auto;bottom:calc(var(--fx-py) - 16px);border-radius:3px}#alert-box[data-frame].progress-top .progress-bar{top:calc(var(--fx-py) - 16px);bottom:auto}`;
+  const st = document.createElement("style"); st.id = "fx-css"; st.textContent = css; document.head.appendChild(st);
+
+  /* ---------- Synth: 20 melodies x 5 timbres = 100 ---------- */
+  const MEL = [["Major Arp", [0, 4, 7, 12], .09], ["Minor Arp", [0, 3, 7, 12], .09], ["Pentatonic Rise", [0, 2, 4, 7, 9, 12], .07], ["Fanfare", [0, 0, 0, 5, 4, 7], .1], ["Falling Stars", [12, 9, 7, 4, 0], .09], ["Power Fifth", [-12, -5, 0], .12], ["Octave Jump", [0, 12, 0, 12], .08], ["Whole Tone", [0, 2, 4, 6, 8, 10], .07], ["Blues Run", [0, 3, 5, 6, 7, 10], .08], ["Lydian Sparkle", [0, 4, 6, 7, 11, 14], .06], ["Coin", [11, 16], .08], ["Level Up", [0, 4, 7, 12, 16, 19], .06], ["Zap Down", [24, 19, 12, 5, 0], .05], ["Triple Bell", [12, 12, 12], .18], ["Drum Roll", [-12, -12, -12, -12, -12, -5], .045], ["Heartbeat", [-17, -17], .22], ["Siren", [7, 0, 7, 0], .16], ["Staccato", [0, 7, 4, 12, 7, 16], .05], ["Chromatic Climb", [0, 1, 2, 3, 4, 5, 6, 7], .05], ["Victory", [0, 4, 7, 4, 7, 12], .11]];
+  const TIM = [["Sine", "sine"], ["Triangle", "triangle"], ["Square", "square"], ["Saw", "sawtooth"], ["FM Wobble", "fm"]];
+  FX.SYN = [];
+  MEL.forEach((m, mi) => TIM.forEach((t, ti) => FX.SYN.push({ id: `sx${mi}_${ti}`, name: `${m[0]} · ${t[0]}` })));
+  FX.isSynth = id => /^sx\d+_\d+$/.test(id);
+  FX.randSynth = () => { const all = ["classic", "cyberpunk", "arcade", "laser", "subbass"].concat(FX.SYN.map(s => s.id)); return all[Math.floor(Math.random() * all.length)]; };
+  FX.playSynth = (ctx, id, vol, type) => {
+    const [mi, ti] = id.slice(2).split("_").map(Number), [, notes, step] = MEL[mi], w = TIM[ti][1];
+    const root = ({ raid: 261.63, host: 261.63, giftsub: 587.33, membergift: 587.33, tip: 659.25, superchat: 659.25, shoutout: 698.46 })[type] || 523.25, now = ctx.currentTime;
+    notes.forEach((n, i) => {
+      const f = root * Math.pow(2, n / 12), at = now + i * step, o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = w === "fm" ? "triangle" : w; o.frequency.setValueAtTime(f, at);
+      if (w === "fm") { const l = ctx.createOscillator(), lg = ctx.createGain(); l.frequency.value = 14; lg.gain.value = f * .03; l.connect(lg); lg.connect(o.frequency); l.start(at); l.stop(at + .45); }
+      g.gain.setValueAtTime(.001, at); g.gain.exponentialRampToValueAtTime(Math.max(vol * .28, .002), at + .02); g.gain.exponentialRampToValueAtTime(.0001, at + .42);
+      o.connect(g); g.connect(ctx.destination); o.start(at); o.stop(at + .44);
+    });
+  };
+
+  /* ---------- image.png: card background OR the whole alert box ("frame") ---------- */
+  const RESET = ["backgroundImage", "backgroundSize", "backgroundPosition", "backgroundRepeat", "backgroundColor", "border", "boxShadow", "backdropFilter", "webkitBackdropFilter", "borderRadius", "overflow", "clipPath", "outline", "minWidth", "maxWidth", "width", "height", "padding", "boxSizing"];
+  FX.fit = (box, img, cfg) => {
+    const s = box.style, ct = box.querySelector(".alert-content");
+    Object.assign(s, { backgroundColor: "transparent", border: "0", boxShadow: "none", backdropFilter: "none", webkitBackdropFilter: "none", borderRadius: "0", overflow: "visible", clipPath: "none", outline: "none", minWidth: "0", maxWidth: "720px", boxSizing: "border-box", padding: "0", width: "max-content", height: "auto" });
+    box.setAttribute("data-frame", "1"); s.setProperty("--sweep-display", "0");
+    if (ct) ct.style.textShadow = "0 2px 10px rgba(0,0,0,.85)";
+    const ix = (cfg.frameInsetX ?? 9) / 100, iy = (cfg.frameInsetY ?? 25) / 100, ratio = (img.naturalWidth || 1390) / (img.naturalHeight || 427);
+    let W = box.offsetWidth / (1 - 2 * ix), H = box.offsetHeight / (1 - 2 * iy);   // size needed so the text + avatar fit inside the art
+    if (cfg.frameLock !== false) { if (W / H < ratio) W = Math.min(H * ratio, W * 1.45); else H = Math.min(W / ratio, H * 1.45); }   // keep the art undistorted (at most ~45% stretch if the content is very tall/wide)
+    W = Math.ceil(W); H = Math.ceil(H);
+    Object.assign(s, { maxWidth: "none", width: W + "px", height: H + "px", padding: `${Math.round(H * iy)}px ${Math.round(W * ix)}px`, backgroundImage: `url("${img.src}")`, backgroundSize: "100% 100%", backgroundPosition: "center", backgroundRepeat: "no-repeat" });
+    s.setProperty("--fx-px", Math.round(W * ix) + "px"); s.setProperty("--fx-py", Math.round(H * iy) + "px");
+  };
+  FX.applyBg = (box, img, mode, cfg, ok) => {
+    if (mode === "replaceAvatar") mode = "background";
+    const ct = box.querySelector(".alert-content");
+    RESET.forEach(p => box.style[p] = ""); box.removeAttribute("data-frame"); box.style.removeProperty("--sweep-display");
+    if (ct) ct.style.textShadow = "";
+    if (!ok) return;
+    if (mode === "background") {
+      const d = ((cfg.imageDim ?? 35) / 100).toFixed(2);
+      Object.assign(box.style, { backgroundImage: `linear-gradient(rgba(0,0,0,${d}),rgba(0,0,0,${d})),url("${img.src}")`, backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat" });
+      if (ct) ct.style.textShadow = "0 2px 12px rgba(0,0,0,.9)";
+    } else if (mode === "frame") FX.fit(box, img, cfg);
+  };
+  FX.refit = () => { try { updateCustomImageLayout(); } catch (e) {} };
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", FX.refit);
+
+  /* ---------- Fonts: more Google Fonts + Windows/system fonts ---------- */
+  FX.GFONTS = [["Anton", "Tall Condensed Headline", "sans-serif"], ["Bangers", "Comic Impact", "cursive"], ["Black Ops One", "Military Stencil", "cursive"], ["Bungee", "Signage Block", "cursive"], ["Bungee Inline", "Signage Inline", "cursive"], ["Creepster", "Horror", "cursive"], ["Audiowide", "Sci-Fi Rounded", "cursive"], ["Teko", "Condensed Tech", "sans-serif"], ["Oswald", "Condensed Headline", "sans-serif"], ["Staatliches", "Poster Caps", "cursive"], ["Permanent Marker", "Hand Marker", "cursive"], ["Righteous", "Retro Rounded", "cursive"], ["Fredoka", "Friendly Rounded", "sans-serif"], ["Lilita One", "Chunky Fun", "cursive"], ["Passion One", "Bold Poster", "cursive"], ["Saira Condensed", "Sporty Condensed", "sans-serif"], ["Exo 2", "Futuristic", "sans-serif"], ["Michroma", "Wide Techno", "sans-serif"], ["Share Tech Mono", "Terminal Mono", "monospace"], ["VT323", "Old Terminal", "monospace"], ["Silkscreen", "Pixel Caps", "cursive"], ["Monoton", "Neon Lines", "cursive"], ["Faster One", "Speed Racing", "cursive"], ["Rubik Glitch", "Glitch", "cursive"], ["Rubik Mono One", "Heavy Mono Block", "sans-serif"], ["Squada One", "Squared Sport", "cursive"], ["Special Elite", "Typewriter", "cursive"], ["Archivo Black", "Heavy Grotesque", "sans-serif"], ["Barlow Condensed", "Clean Condensed", "sans-serif"], ["Big Shoulders Display", "Industrial", "sans-serif"], ["Kanit", "Modern Bold", "sans-serif"], ["Titan One", "Bubble Heavy", "cursive"], ["Luckiest Guy", "Cartoon", "cursive"], ["Pacifico", "Surf Script", "cursive"], ["Lobster", "Classic Script", "cursive"], ["Dancing Script", "Handwritten", "cursive"], ["Cinzel", "Roman Fantasy", "serif"], ["Playfair Display", "Elegant Serif", "serif"], ["Bowlby One", "Fat Display", "cursive"], ["Quantico", "Military HUD", "sans-serif"], ["Iceland", "Digital Slim", "cursive"], ["Zen Dots", "Sci-Fi Dots", "cursive"], ["Syncopate", "Wide Spaced", "sans-serif"], ["Sarpanch", "Mech Blocky", "sans-serif"], ["Major Mono Display", "Lowercase Mono", "monospace"], ["Metal Mania", "Heavy Metal", "cursive"], ["Poppins", "Clean Modern", "sans-serif"], ["Roboto Condensed", "Neutral Condensed", "sans-serif"], ["Nunito", "Soft Rounded", "sans-serif"], ["Aldrich", "Tech Sans", "sans-serif"], ["Electrolize", "Electric Tech", "sans-serif"], ["Wallpoet", "Stencil Tech", "cursive"], ["Gugi", "Digital Round", "cursive"], ["Bevan", "Slab Heavy", "serif"], ["Alfa Slab One", "Slab Poster", "serif"], ["Fugaz One", "Sport Italic", "cursive"], ["Racing Sans One", "Racing Italic", "cursive"]];
+  for (let i = 0; i < FX.GFONTS.length; i += 6) {   // chunked so one bad family can't break the rest
+    const l = document.createElement("link"); l.rel = "stylesheet";
+    l.href = "https://fonts.googleapis.com/css2?" + FX.GFONTS.slice(i, i + 6).map(f => "family=" + f[0].replace(/ /g, "+")).join("&") + "&display=swap";
+    document.head.appendChild(l);
+  }
+  FX.WIN = ["Segoe UI", "Segoe UI Black", "Segoe UI Semibold", "Segoe Print", "Segoe Script", "Bahnschrift", "Arial", "Arial Black", "Arial Rounded MT Bold", "Calibri", "Candara", "Cambria", "Century Gothic", "Consolas", "Constantia", "Corbel", "Courier New", "Ebrima", "Franklin Gothic Medium", "Gabriola", "Gadugi", "Georgia", "Gill Sans MT", "Impact", "Ink Free", "Javanese Text", "Leelawadee UI", "Lucida Console", "Lucida Sans Unicode", "Malgun Gothic", "Microsoft YaHei", "Mongolian Baiti", "Nirmala UI", "Palatino Linotype", "Sitka Text", "Sylfaen", "Tahoma", "Times New Roman", "Trebuchet MS", "Verdana", "Yu Gothic", "Comic Sans MS", "Rockwell", "Stencil", "Showcard Gothic", "Bauhaus 93", "Broadway", "Jokerman", "Haettenschweiler", "Berlin Sans FB", "Copperplate Gothic Bold", "Agency FB", "Algerian", "Magneto", "Snap ITC", "Playbill", "Chiller", "Curlz MT", "Harlow Solid Italic", "Kristen ITC", "Papyrus", "Ravie", "Vivaldi", "Wide Latin", "OCR A Extended"];
+  const MONO = /Consolas|Courier|Lucida Console|OCR A/, SERIF = /Cambria|Constantia|Georgia|Palatino|Sitka|Sylfaen|Times|Rockwell|Algerian|Broadway/;
+  const fam = n => `'${n}', ${MONO.test(n) ? "monospace" : SERIF.test(n) ? "serif" : "sans-serif"}`;
+  let cv; FX.hasFont = n => { cv = cv || document.createElement("canvas").getContext("2d"); const t = "mmmmmmmmmmlliWW@#"; return ["monospace", "serif", "sans-serif"].some(b => { cv.font = `72px ${b}`; const w = cv.measureText(t).width; cv.font = `72px "${n}",${b}`; return cv.measureText(t).width !== w; }); };
+
+  /* ---------- Studio-only UI injection ---------- */
+  const mk = h => { const t = document.createElement("div"); t.innerHTML = h.trim(); return t.firstChild; };
+  const opt = (v, n) => `<option value="${v}" style="background:#18181b">${n}</option>`;
+  const grp = (sel, label, items) => { const g = document.createElement("optgroup"); g.label = label; g.innerHTML = items.map(i => opt(i.id, i.name)).join(""); sel.appendChild(g); };
+  const IN = "w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-white";
+  const refresh = () => applyVisualStylesToDOM(currentAlertPayload.platform, currentAlertPayload.type);
+
+  FX.populateUI = () => {
+    if (state.imageMode === "replaceAvatar") state.imageMode = "background";
+    grp($("opt-avatarAnim"), `+${FX.IDLE.length} Idle Motions`, FX.IDLE);
+    grp($("opt-progressEffect"), `+${FX.PROG.length} Progress Effects`, FX.PROG);
+    const sy = $("opt-synthPreset");
+    sy.insertAdjacentHTML("beforeend", opt("random", "🎲 Random Every Alert (all 105 sounds)"));
+    grp(sy, `+${FX.SYN.length} Synth Styles (Melody · Timbre)`, FX.SYN);
+
+    // Layouts + frames
+    const lg = document.querySelector(".layout-opt-btn").parentElement;
+    FX.LAYOUTS.forEach(([id, n]) => lg.appendChild(mk(`<button data-layout="${id}" class="layout-opt-btn p-2.5 rounded-xl border border-zinc-800 bg-zinc-950/60 text-left text-xs font-bold text-zinc-300">${n}</button>`)));
+    const sg = document.querySelector(".shape-opt-btn").parentElement;
+    FX.SHAPES.forEach(id => sg.appendChild(mk(`<button data-shape="${id}" class="shape-opt-btn py-2 px-1 rounded-lg border border-zinc-800 bg-zinc-950 text-[11px] font-bold text-zinc-400" style="text-transform:capitalize">${id}</button>`)));
+    const fs = (key, label, list) => `<div><label class="block text-[11px] text-zinc-400 mb-1">${label}</label><select data-fx="${key}" class="${IN} py-2">${list.map(o => opt(o[0], o[1])).join("")}</select></div>`;
+    sg.after(mk(`<div class="grid grid-cols-3 gap-2 pt-2">${fs("avatarRing", "Avatar Ring Style", FX.RINGS)}${fs("badgeStyle", "Platform Badge Style", FX.BADGES)}${fs("badgePos", "Badge Position", FX.BPOS)}</div>`));
+    document.querySelectorAll("[data-fx]").forEach(el => el.addEventListener("change", () => { state[el.dataset.fx] = el.value; saveState(); refresh(); }));
+
+    // Platform accent pickers
+    const pg = document.querySelector("#color-pickers-platform .grid");
+    ["youtube", "streamlabs", "streamelements"].forEach(p => pg.appendChild(mk(`<div class="flex items-center justify-between bg-zinc-900 p-2.5 rounded-lg border border-zinc-800"><div class="text-xs font-bold text-white">${FX.PNAME[p]} Accent</div><input data-fxplat="${p}" type="color" class="w-9 h-9 rounded cursor-pointer bg-transparent border-0" /></div>`)));
+    document.querySelectorAll("[data-fxplat]").forEach(el => el.addEventListener("input", () => { (state.platColors = state.platColors || {})[el.dataset.fxplat] = el.value; saveState(); refresh(); }));
+    $("color-pickers-platform").appendChild(mk(`<div class="text-[11px] text-zinc-400">Shoutout alerts always use the sender's platform color, in every color mode.</div>`));
+
+    // Image-as-background controls
+    $("opt-imageMode").after(mk(`<div class="bg-zinc-950/60 p-3 rounded-xl border border-zinc-800 mt-2"><div class="flex justify-between text-xs mb-1"><span class="text-zinc-400">Background Darkening (text readability)</span><span id="val-imageDim" class="font-mono text-white"></span></div><input id="opt-imageDim" type="range" min="0" max="90" class="w-full accent-purple-500 cursor-pointer" /></div>`));
+    $("opt-imageDim").addEventListener("input", e => { state.imageDim = +e.target.value; $("val-imageDim").textContent = state.imageDim + "%"; saveState(); updateCustomImageLayout(); });
+
+    // Frame mode (image.png becomes the whole alert box)
+    $("opt-imageDim").parentElement.after(mk(`<div class="bg-zinc-950/60 p-3 rounded-xl border border-zinc-800 mt-2 space-y-3"><div class="text-[11px] text-zinc-300 font-semibold">"image.png as the alert box" settings (the box is removed; the art is auto-resized to fit text + avatar)</div><div><div class="flex justify-between text-xs mb-1"><span class="text-zinc-400">Side safe-area (left/right padding inside the art)</span><span id="val-frameInsetX" class="font-mono text-white"></span></div><input id="opt-frameInsetX" type="range" min="0" max="30" class="w-full accent-purple-500 cursor-pointer" /></div><div><div class="flex justify-between text-xs mb-1"><span class="text-zinc-400">Top/bottom safe-area</span><span id="val-frameInsetY" class="font-mono text-white"></span></div><input id="opt-frameInsetY" type="range" min="0" max="45" class="w-full accent-purple-500 cursor-pointer" /></div><label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="opt-frameLock" class="rounded accent-purple-500" /><span class="text-zinc-300">Keep image proportions (uncheck to stretch the art to hug the text)</span></label></div>`));
+    ["frameInsetX", "frameInsetY"].forEach(k => $("opt-" + k).addEventListener("input", e => { state[k] = +e.target.value; $("val-" + k).textContent = state[k] + "%"; saveState(); updateCustomImageLayout(); }));
+    $("opt-frameLock").addEventListener("change", e => { state.frameLock = e.target.checked; saveState(); updateCustomImageLayout(); });
+
+    // Fonts
+    const fsel = $("opt-fontFamily"), addFont = (css, label, parent) => { const o = document.createElement("option"); o.value = css; o.textContent = label; o.style.cssText = `background:#18181b;font-family:${css}`; (parent || fsel).appendChild(o); return o; };
+    const fgrp = label => { const g = document.createElement("optgroup"); g.label = label; fsel.appendChild(g); return g; };
+    const gg = fgrp(`+${FX.GFONTS.length} More Google Fonts`); FX.GFONTS.forEach(([n, d, g]) => addFont(`'${n}', ${g}`, `${n} (${d})`, gg));
+    const found = FX.WIN.filter(FX.hasFont), wg = fgrp(`Windows / System fonts found on this PC (${found.length})`);
+    found.forEach(n => addFont(fam(n), n, wg));
+    FX.customFontGroup = fgrp("Custom / scanned fonts");
+    const useFont = css => { if (![...fsel.options].some(o => o.value === css)) addFont(css, css.split(",")[0].replace(/'/g, ""), FX.customFontGroup); fsel.value = css; fsel.dispatchEvent(new Event("change")); };
+    fsel.parentElement.appendChild(mk(`<div class="flex gap-2 mt-2"><input id="fx-font-custom" placeholder="Any installed font, e.g. Bahnschrift" class="${IN} flex-1" /><button id="fx-font-use" class="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-white">Use</button><button id="fx-font-scan" class="px-3 py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 text-xs font-semibold">Scan PC</button></div><p class="text-[11px] text-zinc-400 mt-1">System fonts work in OBS too, as long as they are installed on the same PC that runs OBS.</p>`));
+    $("fx-font-use").addEventListener("click", () => { const n = $("fx-font-custom").value.trim().replace(/['"]/g, ""); if (!n) return; useFont(fam(n)); showToast(FX.hasFont(n) ? `Using ${n}` : `${n} not detected - it will fall back until installed`); });
+    $("fx-font-scan").addEventListener("click", async () => {
+      if (!window.queryLocalFonts) return showToast("Font scan needs Chrome/Edge - type the font name instead");
+      try { const names = [...new Set((await window.queryLocalFonts()).map(f => f.family))].sort(); names.forEach(n => { const css = fam(n); if (![...fsel.options].some(o => o.value === css)) addFont(css, n, FX.customFontGroup); }); showToast(`Added ${names.length} installed fonts to the list`); }
+      catch (e) { showToast("Font access was blocked - type the font name instead"); }
+    });
+
+    // Per-type labels / messages / colors for the new alert types
+    const rows = Object.keys(FX.TYPES).map(k => `<div class="grid grid-cols-12 gap-2 items-center"><span class="col-span-12 text-[10px] uppercase text-zinc-400">${k}</span><input data-fxl="${k}" class="col-span-4 ${IN}" /><input data-fxd="${k}" class="col-span-7 ${IN}" /><input data-fxc="${k}" type="color" class="col-span-1 w-7 h-7 rounded bg-transparent border-0 cursor-pointer" /></div>`).join("");
+    $("tab-layout").appendChild(mk(`<div class="space-y-2.5 pt-3 border-t border-zinc-800"><label class="text-xs font-bold uppercase tracking-wider text-zinc-300">7. YouTube / Streamlabs / StreamElements / Shoutout Text</label><p class="text-[11px] text-zinc-400">Title · message · color. Placeholders: {user} {amount} {message} {game} {count} {months} {viewers} {currency}</p>${rows}</div>`));
+    const bind = (attr, map) => document.querySelectorAll(`[${attr}]`).forEach(el => el.addEventListener("input", () => { state[map][el.getAttribute(attr)] = el.value; saveState(); refresh(); }));
+    bind("data-fxl", "typeLabels"); bind("data-fxd", "detailLabels"); bind("data-fxc", "eventColors");
+
+    // Test buttons + custom test selects
+    const tg = document.querySelector(".test-trigger-btn").parentElement;
+    [["youtube", "follow", "Subscriber", "YT_Viewer", "Thanks for subscribing!", "NEW SUBSCRIBER"], ["youtube", "member", "Member", "MemberMike", "Just became a member!"], ["youtube", "superchat", "Super Chat", "Fan42", "Super Chat $25.00!", "", "$25.00"], ["youtube", "supersticker", "Super Sticker", "StickerFan", "Sent a Super Sticker $5.00!"], ["youtube", "membergift", "Gift Members", "GenerousGal", "Gifted 5 memberships!"], ["youtube", "milestone", "Milestone", "LoyalLee", "Member for 12 months!"], ["streamlabs", "tip", "SL Tip", "Donator1", "Donated $10.00! Love the stream"], ["streamlabs", "merch", "SL Merch", "ShopFan", "Bought a Hoodie!"], ["streamelements", "tip", "SE Tip", "TipKing", "Donated $20.00! GG"], ["twitch", "shoutout", "Shoutout Twitch", "shroud", "Go follow shroud! Last playing Valorant"], ["youtube", "shoutout", "Shoutout YouTube", "MrBeast", "Go follow MrBeast! Last playing Minecraft"], ["kick", "shoutout", "Shoutout Kick", "xQc", "Go follow xQc! Last playing Just Chatting"]]
+      .forEach(([p, t, lab, u, d, title]) => tg.appendChild(mk(`<button data-platform="${p}" data-type="${t}" data-user="${u}" data-detail="${d}" data-title="${title || ""}" class="test-trigger-btn px-3 py-2 rounded-xl border text-left transition" style="background:${FX.PCOL[p]}22;border-color:${FX.PCOL[p]}66"><div class="text-[10px] font-black uppercase tracking-wider" style="color:${FX.PCOL[p]}">${FX.PNAME[p]}</div><div class="text-xs font-bold text-white mt-0.5">${lab}</div></button>`)));
+    $("custom-test-platform").insertAdjacentHTML("beforeend", ["youtube", "streamlabs", "streamelements"].map(p => opt(p, FX.PNAME[p])).join(""));
+    $("custom-test-type").insertAdjacentHTML("beforeend", Object.keys(FX.TYPES).map(k => opt(k, k)).join(""));
+
+    // Shoutout C# button
+    const b = $("btn-view-csharp"), nb = b.cloneNode(true);
+    nb.id = "fx-btn-so"; nb.querySelector("span").textContent = "Shoutout C#"; b.after(nb);
+    nb.addEventListener("click", () => { $("modal-title").textContent = "Streamer.bot Shoutout C# Script"; $("modal-subtitle").textContent = "Attach to a !so command (Twitch / YouTube / Kick) — the overlay colors it by platform"; $("modal-code-content").textContent = $("cs-shout").textContent; $("code-modal").classList.remove("hidden"); });
+  };
+
+  FX.sync = () => {
+    document.querySelectorAll("[data-fx]").forEach(el => el.value = state[el.dataset.fx] || el.options[0].value);
+    document.querySelectorAll("[data-fxplat]").forEach(el => el.value = (state.platColors || {})[el.dataset.fxplat] || FX.PCOL[el.dataset.fxplat]);
+    document.querySelectorAll("[data-fxl]").forEach(el => el.value = state.typeLabels[el.dataset.fxl] || "");
+    document.querySelectorAll("[data-fxd]").forEach(el => el.value = state.detailLabels[el.dataset.fxd] || "");
+    document.querySelectorAll("[data-fxc]").forEach(el => el.value = state.eventColors[el.dataset.fxc] || "#ffffff");
+    const fsel = $("opt-fontFamily");
+    if (fsel && state.fontFamily) { if (![...fsel.options].some(o => o.value === state.fontFamily)) { const o = document.createElement("option"); o.value = state.fontFamily; o.textContent = state.fontFamily.split(",")[0].replace(/'/g, ""); (FX.customFontGroup || fsel).appendChild(o); } fsel.value = state.fontFamily; }
+    if ($("opt-frameInsetX")) { ["frameInsetX", "frameInsetY"].forEach(k => { $("opt-" + k).value = state[k] ?? (k === "frameInsetX" ? 9 : 25); $("val-" + k).textContent = $("opt-" + k).value + "%"; }); $("opt-frameLock").checked = state.frameLock !== false; }
+    if ($("opt-imageDim")) { $("opt-imageDim").value = state.imageDim ?? 35; $("val-imageDim").textContent = (state.imageDim ?? 35) + "%"; }
+  };
+})();
+</script>
+  <script>
+    /**************************************************************
+     * EXPORTED CUSTOMIZER CONFIGURATION
+     **************************************************************/
+    const CONFIG = {
+  "wsUrl": "ws://127.0.0.1:8080/",
+  "customActionsOnly": true,
+  "inEffect": "random",
+  "outEffect": "random",
+  "inDuration": 500,
+  "outDuration": 450,
+  "alertDuration": 6000,
+  "queueDelay": 600,
+  "avatarAnim": "random",
+  "topSweep": "fast",
+  "progressBar": "bottom",
+  "progressEffect": "shimmer",
+  "imageMode": "off",
+  "colorMode": "platform",
+  "twitchColor": "#ff0000",
+  "kickColor": "#ff0000",
+  "customAccent": "#FF2A85",
+  "eventColors": {
+    "follow": "#9146FF",
+    "sub": "#53FC18",
+    "resub": "#06B6D4",
+    "giftsub": "#EC4899",
+    "raid": "#F59E0B",
+    "cheer": "#3B82F6",
+    "tip": "#10B981",
+    "superchat": "#FFB300",
+    "supersticker": "#FF6D00",
+    "member": "#00BFA5",
+    "membergift": "#E040FB",
+    "milestone": "#2979FF",
+    "merch": "#FF4081",
+    "host": "#FFAB40",
+    "charity": "#69F0AE",
+    "shoutout": "#9146FF"
+  },
+  "bgColor": "#07070c",
+  "bgOpacity": 95,
+  "backdropBlur": 8,
+  "userColor": "#ffffff",
+  "titleColor": "#d4d4d8",
+  "detailColor": "#9146FF",
+  "syncDetailAccent": true,
+  "borderWidth": 2,
+  "borderRadius": 6,
+  "glowSpread": 42,
+  "glowOpacity": 80,
+  "layout": "row",
+  "screenAnchor": "top-center",
+  "fontFamily": "'Orbitron', sans-serif",
+  "userFontSize": 1.9,
+  "avatarSize": 92,
+  "avatarShape": "circle",
+  "showMiniBadge": true,
+  "showPlatformTag": true,
+  "typeLabels": {
+    "follow": "NEW FOLLOWER",
+    "sub": "NEW SUBSCRIBER",
+    "resub": "RESUBSCRIBER",
+    "giftsub": "GIFTED SUB",
+    "raid": "INCOMING RAID",
+    "cheer": "BITS / KICKS SENT",
+    "tip": "TIP / DONATION",
+    "superchat": "SUPER CHAT",
+    "supersticker": "SUPER STICKER",
+    "member": "NEW MEMBER",
+    "membergift": "GIFTED MEMBERSHIPS",
+    "milestone": "MEMBER MILESTONE",
+    "merch": "NEW MERCH ORDER",
+    "host": "HOSTED",
+    "charity": "CHARITY DONATION",
+    "shoutout": "SHOUTOUT"
+  },
+  "detailLabels": {
+    "follow": "Welcome to the stream!",
+    "sub": "Just subscribed!",
+    "resub": "Resubscribed!",
+    "giftsub": "Gifted a sub to {recipient}!",
+    "raid": "Raiding with {viewers} viewers!",
+    "cheer": "Cheered {amount}!",
+    "tip": "Donated {amount}! {message}",
+    "superchat": "Super Chat {amount}! {message}",
+    "supersticker": "Sent a Super Sticker {amount}!",
+    "member": "Just became a member!",
+    "membergift": "Gifted {count} memberships!",
+    "milestone": "Member for {months} months!",
+    "merch": "Bought {message}!",
+    "host": "Hosting with {viewers} viewers!",
+    "charity": "Donated {amount} to charity! {message}",
+    "shoutout": "Go follow {user}! Last playing {game}"
+  },
+  "synthPreset": "random",
+  "volume": 1,
+  "customSounds": {
+    "default": "",
+    "follow": "",
+    "sub": "",
+    "giftsub": "",
+    "raid": "",
+    "cheer": ""
+  },
+  "platColors": {
+    "youtube": "#ff0000",
+    "streamlabs": "#ff0000",
+    "streamelements": "#ff0000"
+  },
+  "avatarRing": "none",
+  "badgeStyle": "circle",
+  "badgePos": "br",
+  "imageDim": 35,
+  "frameInsetX": 9,
+  "frameInsetY": 25,
+  "frameLock": true
+};
+
+    const IN_LIST = ["slideUpFade","slideDown","slideLeft","slideRight","elasticBounce","popOvershoot","flip3DX","flip3DY","glitchIn","tornadoSpin","skewSpeed","dropBounce","neonFlicker","unfoldHorizontal","rubberBand","earthquakeSlam","zoomFade","rotateIn","bounceInLeft","bounceInRight","blurFocus","spiralIn","cardFlip","lightningIn","swingDrop","materialize"].concat(FX.IN.map(e => e.id));
+    const OUT_LIST = ["floatUpFade","dropDownFade","shootLeft","shootRight","implodeZoom","explodeZoom","flipOutX","flipOutY","glitchOut","tvTurnOff","spinOut","hingeDrop","neonPowerDown","dissolveBlur","shrinkFade","slideDownRight","rotateOut","bounceOut","blurOut","spiralOut","foldOut","swingOut"].concat(FX.OUT.map(e => e.id));
+    const AVATAR_LIST = ["pulse","float","spin","glow","bounce","orbit","shimmer","none"].concat(FX.IDLE.map(e => e.id));
+    const PROGRESS_LIST = ["solid","shimmer","pulse","stripes","glow","segmented","none"].concat(FX.PROG.map(e => e.id));
+    let currentAvatarAnimation = CONFIG.avatarAnim === "random" ? "pulse" : CONFIG.avatarAnim;
+    let currentProgressEffect = CONFIG.progressEffect === "random" ? "solid" : (CONFIG.progressEffect || "solid");
+    let customImageAvailable = false;
+
+    const ICONS = {
+      twitch: `<svg viewBox="0 0 24 24"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></svg>`,
+      kick: `<svg viewBox="0 0 24 24"><path d="M3 2h6v6h3V5h3V2h6v6h-3v3h-3v2h3v3h3v6h-6v-3h-3v-3H9v6H3V2z"/></svg>`
+    };
+
+    function hexToRgb(hex) {
+      const clean = (hex || "#9146FF").replace("#", "");
+      const num = parseInt(clean.length === 3 ? clean.split("").map(c => c + c).join("") : clean, 16);
+      return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+    }
+
+    function getLuminance(hex) {
+      const { r, g, b } = hexToRgb(hex);
+      return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    }
+
+    function resolveAccent(platform, typeKey, overrideColor) {
+      if (typeKey === "shoutout" && !(overrideColor && overrideColor.startsWith("#"))) return FX.platColor(CONFIG, platform);
+      if (overrideColor && overrideColor.startsWith("#")) return overrideColor;
+      if (CONFIG.colorMode === "custom") return CONFIG.customAccent;
+      if (CONFIG.colorMode === "eventType") return CONFIG.eventColors[typeKey] || CONFIG.twitchColor;
+      return FX.platColor(CONFIG, platform);
+    }
+
+    function getAlertBoxBaseClass() {
+      return `layout-${CONFIG.layout} progress-${CONFIG.progressBar} progress-effect-${currentProgressEffect}`;
+    }
+
+    function formatAlertDetail(payload, typeKey, platform, username) {
+      const template = CONFIG.detailLabels?.[typeKey];
+      const variables = {
+        user: username || payload.user || "Someone",
+        platform: (platform || payload.platform || "twitch").toUpperCase(),
+        recipient: payload.recipient || payload.recipientUserName || "the community",
+        viewers: payload.viewers ?? payload.viewer_count ?? 1,
+        months: payload.months ?? payload.cumulativeMonths ?? "",
+        amount: payload.amount ?? payload.bits ?? "", game: payload.game ?? "", message: payload.message ?? "", currency: payload.currency ?? "", tier: payload.tier ?? "", count: payload.count ?? ""
+      };
+      return String(template ?? payload.detail ?? "").replace(/\{(user|platform|recipient|viewers|months|amount|game|message|currency|tier|count)\}/gi, (_, key) => String(variables[key.toLowerCase()] ?? ""));
+    }
+
+    function updateCustomImageLayout() {
+      const container = document.getElementById("custom-image-container");
+      const image = document.getElementById("custom-alert-image");
+      const avatarContainer = document.getElementById("avatar-container");
+      if (!container || !image || !avatarContainer) return;
+      const mode = CONFIG.imageMode || "off";
+      container.style.display = mode === "inline" && customImageAvailable ? "flex" : "none";
+      avatarContainer.style.display = "flex";
+      FX.applyBg(document.getElementById("alert-box"), image, mode, CONFIG, customImageAvailable);
+      if (customImageAvailable && image.naturalWidth && image.naturalHeight) {
+        image.style.aspectRatio = `${image.naturalWidth} / ${image.naturalHeight}`;
+        image.style.maxWidth = CONFIG.layout === "column" ? "min(260px, 45vw)" : "min(180px, 25vw)";
+        image.style.maxHeight = CONFIG.layout === "column" ? "min(170px, 25vh)" : "min(150px, 30vh)";
+      }
+    }
+
+    function setupCustomImage() {
+      const image = document.getElementById("custom-alert-image");
+      if (!image) return;
+      image.onload = () => { customImageAvailable = true; updateCustomImageLayout(); };
+      image.onerror = () => {
+        customImageAvailable = false;
+        const container = document.getElementById("custom-image-container");
+        if (container) container.style.display = "none";
+      };
+      image.src = new URL("image.png", document.baseURI).href;
+      if (image.complete && image.naturalWidth > 0) { customImageAvailable = true; updateCustomImageLayout(); }
+    }
+
+    function applyTheme(platform, typeKey, overrideColor) {
+      const root = document.documentElement;
+      const accentHex = resolveAccent(platform, typeKey, overrideColor);
+      const rgb = hexToRgb(accentHex);
+      const bgRgb = hexToRgb(CONFIG.bgColor);
+
+      root.style.setProperty("--accent", accentHex);
+      root.style.setProperty("--accent-glow", `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${(CONFIG.glowOpacity / 100).toFixed(2)})`);
+      root.style.setProperty("--bg-color", `rgba(${bgRgb.r}, ${bgRgb.g}, ${bgRgb.b}, ${(CONFIG.bgOpacity / 100).toFixed(2)})`);
+      root.style.setProperty("--backdrop-blur", `${CONFIG.backdropBlur}px`);
+      root.style.setProperty("--text-user", CONFIG.userColor);
+      root.style.setProperty("--text-title", CONFIG.titleColor);
+      root.style.setProperty("--text-detail", CONFIG.syncDetailAccent ? accentHex : CONFIG.detailColor);
+      root.style.setProperty("--badge-text", getLuminance(accentHex) > 0.62 ? "#09090b" : "#ffffff");
+      root.style.setProperty("--border-width", `${CONFIG.borderWidth}px`);
+      root.style.setProperty("--border-radius", CONFIG.layout === "compact" ? "9999px" : `${CONFIG.borderRadius}px`);
+      root.style.setProperty("--glow-spread", `${CONFIG.glowSpread}px`);
+      root.style.setProperty("--avatar-size", `${CONFIG.avatarSize}px`);
+      root.style.setProperty("--user-font-size", `${CONFIG.userFontSize}rem`);
+      root.style.setProperty("--alert-font", CONFIG.fontFamily);
+      root.style.setProperty("--in-duration", `${CONFIG.inDuration}ms`);
+      root.style.setProperty("--out-duration", `${CONFIG.outDuration}ms`);
+
+      const sweepSpeedMap = { fast: "1.4s", normal: "2.2s", slow: "3.8s", off: "0s" };
+      root.style.setProperty("--sweep-speed", sweepSpeedMap[CONFIG.topSweep] || "2.2s");
+      root.style.setProperty("--sweep-display", CONFIG.topSweep === "off" ? "0" : "1");
+
+      document.getElementById("platform-icon").style.display = CONFIG.showMiniBadge ? "flex" : "none";
+      document.getElementById("platform-name").style.display = CONFIG.showPlatformTag ? "inline-block" : "none";
+      const avatarContainer = document.getElementById("avatar-container");
+      if (avatarContainer) avatarContainer.className = `avatar-container shape-${CONFIG.avatarShape} avatar-anim-${currentAvatarAnimation} ${FX.extraClasses(CONFIG)}`;
+      updateCustomImageLayout();
+    }
+
+    function getFallbackAvatar(username, platform, typeKey) {
+      const accent = resolveAccent(platform, typeKey).replace("#", "");
+      const color = getLuminance("#" + accent) > 0.62 ? "09090b" : "ffffff";
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(username || "U")}&background=${accent}&color=${color}&bold=true&size=128`;
+    }
+
+    async function resolveAvatarUrl(username, platform, providedAvatar, typeKey) {
+      if (providedAvatar && providedAvatar.startsWith("http")) return providedAvatar;
+      const cleanUser = (username || "").trim();
+      if (!cleanUser || cleanUser.toLowerCase() === "anonymous") return getFallbackAvatar("?", platform, typeKey);
+      try {
+        if (platform === "twitch") {
+          const res = await fetch(`https://decapi.me/twitch/avatar/${encodeURIComponent(cleanUser)}`);
+          if (res.ok) {
+            const text = (await res.text()).trim();
+            if (text.startsWith("http") && !text.includes("decapi.me")) return text;
+          }
+        } else if (platform === "kick") {
+          const res = await fetch(`https://kick.com/api/v2/channels/${encodeURIComponent(cleanUser)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.user?.profile_pic) return data.user.profile_pic;
+          }
+        }
+      } catch (e) {}
+      return getFallbackAvatar(cleanUser, platform, typeKey);
+    }
+
+    const audioEl = document.getElementById("alert-audio");
+    let audioCtx = null;
+
+    function playSynthSound(type) {
+      if (CONFIG.synthPreset === "none" || CONFIG.volume <= 0) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        const now = audioCtx.currentTime;
+        let preset = CONFIG.synthPreset;
+        if (preset === "random") preset = FX.randSynth();
+        if (FX.isSynth(preset)) { FX.playSynth(audioCtx, preset, CONFIG.volume, type); return; }
+
+        if (preset === "laser") {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(180, now);
+          osc.frequency.exponentialRampToValueAtTime(1320, now + 0.18);
+          osc.frequency.exponentialRampToValueAtTime(440, now + 0.38);
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.exponentialRampToValueAtTime(CONFIG.volume * 0.32, now + 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.44);
+          return;
+        }
+
+        let notes = [523.25, 659.25, 783.99, 1046.50];
+        let wave = "triangle";
+        let step = 0.09;
+
+        if (preset === "cyberpunk") {
+          wave = "sawtooth"; step = 0.07;
+          notes = type === "raid" ? [220, 277.18, 329.63, 440, 554.37, 659.25] : [329.63, 440, 659.25, 880, 1318.5];
+        } else if (preset === "arcade") {
+          wave = "square"; step = 0.065;
+          notes = [587.33, 880, 1174.66, 1760];
+        } else if (preset === "subbass") {
+          wave = "sine"; step = 0.11;
+          notes = [110, 220, 329.63, 440];
+        } else {
+          const map = {
+            follow:  [523.25, 659.25, 783.99, 1046.50],
+            sub:     [440, 554.37, 659.25, 880, 1108.73],
+            giftsub: [587.33, 739.99, 880, 1174.66],
+            raid:    [392.00, 392.00, 523.25, 659.25, 783.99]
+          };
+          notes = map[type] || [523.25, 659.25, 1046.50];
+          wave = type === "raid" ? "sawtooth" : "triangle";
+        }
+
+        notes.forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = wave;
+          osc.frequency.setValueAtTime(freq, now + idx * step);
+          gain.gain.setValueAtTime(0.001, now + idx * step);
+          gain.gain.exponentialRampToValueAtTime(CONFIG.volume * 0.3, now + idx * step + 0.025);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * step + 0.42);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + idx * step);
+          osc.stop(now + idx * step + 0.44);
+        });
+      } catch (e) {}
+    }
+
+    function playAlertSound(type, customSoundOverride) {
+      const soundSrc = customSoundOverride || CONFIG.customSounds[type] || CONFIG.customSounds.default;
+      if (soundSrc) {
+        audioEl.src = soundSrc;
+        audioEl.volume = CONFIG.volume;
+        audioEl.currentTime = 0;
+        audioEl.play().catch(() => playSynthSound(type));
+      } else {
+        playSynthSound(type);
+      }
+    }
+
+    const alertQueue = [];
+    let isShowingAlert = false;
+    const alertBox = document.getElementById("alert-box");
+    const userAvatar = document.getElementById("user-avatar");
+    const platformIcon = document.getElementById("platform-icon");
+    const platformName = document.getElementById("platform-name");
+    const alertTitle = document.getElementById("alert-title");
+    const alertUsername = document.getElementById("alert-username");
+    const alertDetail = document.getElementById("alert-detail");
+    const progressBar = document.getElementById("progress-bar");
+
+    function pickEffect(id, list) {
+      if (id !== "random") return id;
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
+    function enqueueAlert(data) {
+      alertQueue.push(data);
+      if (!isShowingAlert) processQueue();
+    }
+
+    async function processQueue() {
+      if (alertQueue.length === 0) {
+        isShowingAlert = false;
+        return;
+      }
+      isShowingAlert = true;
+      const current = alertQueue.shift();
+
+      const rawPlatform = (current.platform || "twitch").toLowerCase();
+      const platform = FX.normPlatform(rawPlatform);
+      const typeKey = (current.type || "follow").toLowerCase();
+      currentAvatarAnimation = pickEffect(CONFIG.avatarAnim, AVATAR_LIST);
+      currentProgressEffect = pickEffect(CONFIG.progressEffect || "solid", PROGRESS_LIST);
+
+      applyTheme(platform, typeKey, current.color);
+
+      const displayTitle = current.title || CONFIG.typeLabels[typeKey] || typeKey.toUpperCase();
+      const username = current.user || "Anonymous";
+
+      const avatarUrl = await resolveAvatarUrl(username, platform, current.avatar, typeKey);
+      userAvatar.onerror = () => {
+        userAvatar.onerror = null;
+        userAvatar.src = getFallbackAvatar(username, platform, typeKey);
+      };
+      userAvatar.src = avatarUrl;
+
+      platformIcon.innerHTML = FX.ICONS[platform] || ICONS[platform] || ICONS.twitch;
+      platformName.textContent = FX.PNAME[platform] || platform.toUpperCase();
+      alertTitle.textContent = displayTitle;
+      alertUsername.textContent = username;
+      alertDetail.textContent = current.useTemplate
+        ? formatAlertDetail(current, typeKey, platform, username)
+        : (current.detail || "");
+
+      FX.refit();
+      const inAnim = pickEffect(current.inEffect || CONFIG.inEffect, IN_LIST);
+      const outAnim = pickEffect(current.outEffect || CONFIG.outEffect, OUT_LIST);
+
+      alertBox.className = getAlertBoxBaseClass();
+      void alertBox.offsetWidth;
+      alertBox.classList.add(`anim-in-${inAnim}`);
+
+      progressBar.style.transition = "none";
+      progressBar.style.transform = "scaleX(1)";
+      void progressBar.offsetWidth;
+      progressBar.style.transition = `transform ${CONFIG.alertDuration}ms linear`;
+      progressBar.style.transform = "scaleX(0)";
+
+      playAlertSound(typeKey, current.sound);
+
+      setTimeout(() => {
+        alertBox.className = `${getAlertBoxBaseClass()} anim-out-${outAnim}`;
+        setTimeout(() => {
+          alertBox.className = getAlertBoxBaseClass();
+          setTimeout(() => {
+            processQueue();
+          }, CONFIG.queueDelay);
+        }, CONFIG.outDuration);
+      }, CONFIG.alertDuration);
+    }
+
+    function connectWebSocket() {
+      const ws = new WebSocket(CONFIG.wsUrl);
+      ws.onopen = () => {
+        ws.send(JSON.stringify({
+          request: "Subscribe",
+          id: "obs-alert-overlay",
+          events: {
+            General: ["Custom"],
+            Twitch: ["Follow", "Sub", "ReSub", "GiftSub", "Raid", "Cheer"],
+            Kick: ["Follow", "Subscription", "Resubscription", "GiftSubscription", "Raid", "Kicks"]
+          }
+        }));
+        FX.subscribeExtra(ws);
+      };
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (!msg.event) return;
+          const source = msg.event.source;
+          const type = msg.event.type;
+          const data = msg.data || {};
+
+          if (source === "General" && type === "Custom") {
+            const payload = data.data || data;
+            if (payload && (payload.alert || payload.user)) {
+              enqueueAlert({
+                platform: payload.platform || payload.userType || "twitch",
+                type: payload.type || "follow",
+                title: payload.title || "",
+                user: payload.user || "Someone",
+                avatar: payload.avatar || "",
+                detail: payload.detail || "",
+                sound: payload.sound || "",
+                color: payload.color || "",
+                inEffect: payload.inEffect || "",
+                outEffect: payload.outEffect || "",
+                useTemplate: payload.useTemplate === true,
+                recipient: payload.recipient || payload.recipientUserName || "",
+                viewers: payload.viewers ?? payload.viewer_count ?? "",
+                months: payload.months ?? payload.cumulativeMonths ?? "",
+                amount: payload.amount ?? payload.bits ?? "", game: payload.game ?? "", message: payload.message ?? "", currency: payload.currency ?? "", tier: payload.tier ?? "", count: payload.count ?? ""
+              });
+            }
+            return;
+          }
+
+          if (!CONFIG.customActionsOnly && ["YouTube", "Streamlabs", "StreamElements"].includes(source)) {
+            const fxAlert = FX.fromRaw(source, type, data);
+            if (fxAlert) enqueueAlert(fxAlert);
+            return;
+          }
+
+          if ((source === "Twitch" || source === "Kick") && !CONFIG.customActionsOnly) {
+            const user = data.user?.name || data.user?.displayName || data.user_name || data.username || data.from_broadcaster_user_name;
+            if (!user) return;
+            const avatar = data.user?.profileImageUrl || data.user?.avatar || data.profile_image_url || data.avatar || "";
+            let alertType = "follow";
+            let detail = "Welcome to the stream!";
+            const templateData = { recipient: data.recipient?.name || data.recipientUserName || data.recipient?.displayName || "the community", viewers: data.viewers || data.viewer_count || 1, months: data.cumulativeMonths || data.cumulative_months || data.months || "", amount: data.bits || data.amount || "" };
+            if (type.includes("Gift")) {
+              alertType = "giftsub";
+              detail = `Gifted a sub to ${templateData.recipient}!`;
+            } else if (type.includes("ReSub") || type.includes("Resub")) {
+              alertType = "resub";
+              detail = templateData.months ? `${templateData.months} Months!` : "Resubscribed!";
+            } else if (type.includes("Sub")) {
+              alertType = "sub";
+              detail = "Just subscribed!";
+            } else if (type.includes("Raid")) {
+              alertType = "raid";
+              detail = `Raiding with ${templateData.viewers} viewers!`;
+            } else if (type === "Cheer" || type === "Kicks") {
+              alertType = "cheer";
+              detail = templateData.amount ? `Sent ${templateData.amount} ${source === "Kick" ? "Kicks" : "Bits"}!` : "";
+            }
+            enqueueAlert({ platform: source.toLowerCase(), type: alertType, user, avatar, detail, useTemplate: true, ...templateData });
+          }
+        } catch (err) {}
+      };
+      ws.onclose = () => setTimeout(connectWebSocket, 3000);
+      ws.onerror = () => ws.close();
+    }
+
+    setupCustomImage();
+    connectWebSocket();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("test") === "true") {
+      setTimeout(() => {
+        enqueueAlert({ platform: "twitch", type: "follow", user: "MrrZed0", detail: "Thanks for the follow!" });
+        enqueueAlert({ platform: "kick", type: "sub", user: "xQc", detail: "Tier 1 Subscriber!" });
+        enqueueAlert({ platform: "twitch", type: "raid", user: "shroud", detail: "Raiding with 48 viewers!" });
+      }, 500);
+    }
+  </script>
+</body>
+</html>
