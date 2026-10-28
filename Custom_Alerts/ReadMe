@@ -1,0 +1,27 @@
+It works in four steps:
+
+1. Someone types `!so @shroud` in chat. Streamer.bot's command trigger puts the target name in its arguments.
+2. Your action runs the shoutout C# script. It reads the target, works out which platform the command was typed on, and finds the target's avatar and last game.
+3. The script optionally fires Twitch's native `/shoutout` and sends a chat message.
+4. It broadcasts a JSON alert over the WebSocket, and the overlay shows it in that platform's color: purple for Twitch, red for YouTube, green for Kick.
+
+**Setup**
+1. In Streamer.bot, go to Servers/Clients, then WebSocket Server. Start it on `127.0.0.1:8080` and tick auto-start. That matches the URL in the studio.
+2. Create an action called "Shoutout". Add a Core → C# → Execute C# Code sub-action and paste in `streamerbot_shoutout.cs.txt` (or use the **Shoutout C#** button in the studio). If it won't compile, add `Newtonsoft.Json.dll` in the References tab, then click Compile.
+3. Go to Commands and add a command `!so`. Turn it on for each platform you stream on (Twitch, YouTube, Kick) and set permissions to Moderator and Broadcaster. Attach the "Shoutout" action to it.
+4. In OBS, use your exported `alerts.html` as the browser source.
+
+**Arguments you must set:** none. Streamer.bot creates `targetUser` and `input0` automatically when the command runs.
+
+**Optional arguments** (add them with a Set Argument sub-action before the C# one):
+- `soChatMessage`: custom chat text. The default is "Go show some love to X! They were last playing GAME -> link".
+- `nativeShoutout`: set to `false` to skip Twitch's built-in shoutout.
+- `alertTitle`, `alertColor`, `inEffect`, `outEffect`, `alertSound`: per-action overrides. Leave `alertColor` empty so the platform color is used.
+
+**Getting the target's game and avatar:**
+- On Twitch, the avatar is looked up automatically. The game is not.
+- To get the game, add a Twitch → Get User Info for Target sub-action before the C# one. The script reads `targetUserGame`, `targetGame`, `game` or `gameName`.
+- I wrote those argument names from memory. After a test run, check the action history in Streamer.bot for the real name and add it to the `Arg("targetUserGame", ...)` line if it differs. Otherwise the alert says "something awesome".
+- On YouTube and Kick the avatar isn't looked up, so it shows the initials fallback unless you pass `targetUserProfileImageUrl`.
+
+**Testing:** the studio has Shoutout Twitch, Shoutout YouTube and Shoutout Kick test buttons. In Streamer.bot, you can also right-click the action and use Test Trigger with `targetUser` set to a name.
