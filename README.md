@@ -18,6 +18,7 @@ This system pairs a local HTML5/Tailwind/Web Audio customizer studio with native
 5. Open `customizer.html` inside your web browser, choose your settings, layout, colors, and effects live.
 6. Click **Export / Download alerts.html** and place it in your local streaming asset folder, replacing any existing `overlay.html` / `alerts.html` file.
 7. Open **OBS Studio** or **Streamlabs**, add a **Browser Source**, select your local `alerts.html` file, set the dimensions to **1920x1080**, and make sure to check **Control audio via OBS**.
+8. Make Sure To Enable Streamer.bot WebSocket Server ! (Servers/Clients - WebSocket Server - Enable Auto Start & Server Status Click Start Server)
 
 ---
 
