@@ -1,5 +1,5 @@
 # Streamer.bot Multi-Platform Alert Studio Pro
-![https://github.com/MrrZed0/Alerts_All_Platforms/blob/main/Preview.png?raw=true](https://github.com/MrrZed0/Alerts_All_Platforms/blob/main/Preview.png?raw=true)
+![https://github.com/MrrZed0/Alerts_All_Platforms/blob/main/Preview.png](https://github.com/MrrZed0/Alerts_All_Platforms/blob/main/Preview.png?raw=true)
 
 # Streamer.bot Multi-Platform Alert Studio Pro
 
