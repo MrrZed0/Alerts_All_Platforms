@@ -4,6 +4,8 @@
 ![OBS Studio](https://img.shields.io/badge/OBS_Studio-Browser_Source-black?style=for-the-badge&logo=obsstudio)
 ![Platforms](https://img.shields.io/badge/Supported-Twitch_|_Kick_|_YouTube_|_SL_|_SE-success?style=for-the-badge)
 
+![https://github.com/MrrZed0/Alerts_All_Platforms/blob/main/Preview.png](https://github.com/MrrZed0/Alerts_All_Platforms/blob/main/Preview.png?raw=true)
+
 A fully customizable, zero-dependency, single-file HTML OBS overlay for Streamer.bot. Visually design your stream alerts with **100+ Entrance/Exit animations**, **100+ Idle/Progress FX**, and **100+ Web Audio Synth styles** directly in your browser, then export a standalone HTML file ready for OBS.
 
 ## ✨ Features
