@@ -1,0 +1,5 @@
+Go To C:\Windows\Microsoft.NET/Framework64/v4.0.30319/
+
+Place The Newtonsoft.Json.dll Into The Folder
+
+Make Sure The Versions Match If The Folder Is 4.0 Use The 4.0 Version If Its 4.5 Then Use The 4.5 Version Add DLL To C# References 
